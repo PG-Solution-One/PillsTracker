@@ -29,11 +29,11 @@ import com.denisp.pillstracker.data.TrackerRepository
 import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.ThemeMode
 import com.denisp.pillstracker.notifications.NotificationScheduler
-import com.denisp.pillstracker.ui.screens.HistoryScreen
-import com.denisp.pillstracker.ui.screens.MedicineEditorScreen
-import com.denisp.pillstracker.ui.screens.MedicinesScreen
-import com.denisp.pillstracker.ui.screens.SettingsScreen
-import com.denisp.pillstracker.ui.screens.TodayScreen
+import com.denisp.pillstracker.ui.feature.editor.MedicineEditorScreen
+import com.denisp.pillstracker.ui.feature.history.HistoryScreen
+import com.denisp.pillstracker.ui.feature.medicines.MedicinesScreen
+import com.denisp.pillstracker.ui.feature.settings.SettingsScreen
+import com.denisp.pillstracker.ui.feature.today.TodayScreen
 
 private enum class MainSection(val title: String, val icon: ImageVector) {
     TODAY("Сегодня", Icons.Rounded.Today),

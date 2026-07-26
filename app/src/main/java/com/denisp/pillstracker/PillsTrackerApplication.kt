@@ -1,8 +1,8 @@
 package com.denisp.pillstracker
 
 import android.app.Application
-import com.denisp.pillstracker.data.TrackerDatabase
 import com.denisp.pillstracker.data.TrackerRepository
+import com.denisp.pillstracker.data.local.TrackerDatabase
 import com.denisp.pillstracker.notifications.NotificationScheduler
 
 class PillsTrackerApplication : Application() {

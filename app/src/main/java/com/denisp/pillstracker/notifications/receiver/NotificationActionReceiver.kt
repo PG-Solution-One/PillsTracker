@@ -1,10 +1,11 @@
-package com.denisp.pillstracker.notifications
+package com.denisp.pillstracker.notifications.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.denisp.pillstracker.PillsTrackerApplication
 import com.denisp.pillstracker.model.IntakeStatus
+import com.denisp.pillstracker.notifications.NotificationScheduler
 import com.denisp.pillstracker.notifications.NotificationScheduler.Companion.EXTRA_NOTIFICATION_ACTION
 import com.denisp.pillstracker.notifications.NotificationScheduler.Companion.EXTRA_SCHEDULED_AT
 import com.denisp.pillstracker.notifications.NotificationScheduler.NotificationAction

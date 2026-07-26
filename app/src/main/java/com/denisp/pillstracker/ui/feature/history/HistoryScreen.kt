@@ -1,4 +1,4 @@
-package com.denisp.pillstracker.ui.screens
+package com.denisp.pillstracker.ui.feature.history
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

@@ -25,13 +25,13 @@
         </activity>
 
         <receiver
-            android:name=".notifications.AlarmReceiver"
+            android:name=".notifications.receiver.AlarmReceiver"
             android:exported="false" />
         <receiver
-            android:name=".notifications.NotificationActionReceiver"
+            android:name=".notifications.receiver.NotificationActionReceiver"
             android:exported="false" />
         <receiver
-            android:name=".notifications.BootReceiver"
+            android:name=".notifications.receiver.BootReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>

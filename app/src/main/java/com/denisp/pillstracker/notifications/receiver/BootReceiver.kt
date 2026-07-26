@@ -1,4 +1,4 @@
-package com.denisp.pillstracker.notifications
+package com.denisp.pillstracker.notifications.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context

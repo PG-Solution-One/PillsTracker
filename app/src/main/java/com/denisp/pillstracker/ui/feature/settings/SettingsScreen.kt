@@ -1,4 +1,4 @@
-package com.denisp.pillstracker.ui.screens
+package com.denisp.pillstracker.ui.feature.settings
 
 import android.app.AlarmManager
 import android.content.Context

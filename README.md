@@ -2,7 +2,7 @@
 
 Локальный трекер лекарств для Android 16.
 
-Текущая версия: **1.0.0**. Список изменений находится в [`CHANGELOG.md`](CHANGELOG.md).
+Текущая версия: **1.0.1**. Список изменений находится в [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Возможности
 
@@ -29,16 +29,5 @@
 3. Запустите конфигурацию `app` на устройстве или эмуляторе.
 4. Разрешите уведомления и точные напоминания.
 
-Проверочная сборка:
-
-```shell
-./gradlew testDebugUnitTest lintDebug assembleDebug
-```
-
-Debug APK создаётся в `app/build/outputs/apk/debug/app-debug.apk`.
-
-## Версионирование
-
-Проект использует Semantic Versioning в формате `MAJOR.MINOR.PATCH`. Номер версии
-Android хранится в `app/build.gradle.kts`, а описание изменений каждой версии —
-в `CHANGELOG.md`.
+Debug APK автоматически создаётся с названием и версией:
+`app/build/outputs/pills-tracker/PillsTracker-1.0.1-test.apk`.

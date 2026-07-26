@@ -14,7 +14,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
-import com.denisp.pillstracker.data.ThemePreferences
+import com.denisp.pillstracker.data.local.ThemePreferences
 import com.denisp.pillstracker.notifications.NotificationScheduler.Companion.EXTRA_SCHEDULED_AT
 import com.denisp.pillstracker.ui.PillsTrackerApp
 import com.denisp.pillstracker.ui.theme.PillsTrackerTheme

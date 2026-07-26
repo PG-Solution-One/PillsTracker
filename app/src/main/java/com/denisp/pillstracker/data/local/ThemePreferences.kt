@@ -1,4 +1,4 @@
-package com.denisp.pillstracker.data
+package com.denisp.pillstracker.data.local
 
 import android.content.Context
 import androidx.core.content.edit

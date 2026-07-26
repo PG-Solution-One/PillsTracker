@@ -1,3 +1,5 @@
+import com.android.build.api.artifact.SingleArtifact
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -11,8 +13,8 @@ android {
         applicationId = "com.denisp.pillstracker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -35,6 +37,25 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        val variantName = variant.name
+        val capitalizedVariantName = variantName.replaceFirstChar(Char::uppercaseChar)
+        val buildLabel = if (variantName == "debug") "test" else variantName
+        val versionName = variant.outputs.single().versionName
+        val namedApk = tasks.register<Copy>("create${capitalizedVariantName}NamedApk") {
+            from(variant.artifacts.get(SingleArtifact.APK))
+            include("*.apk")
+            into(layout.buildDirectory.dir("outputs/pills-tracker"))
+            rename { "PillsTracker-${versionName.get()}-$buildLabel.apk" }
+        }
+
+        tasks.matching { it.name == "assemble$capitalizedVariantName" }.configureEach {
+            finalizedBy(namedApk)
+        }
     }
 }
 

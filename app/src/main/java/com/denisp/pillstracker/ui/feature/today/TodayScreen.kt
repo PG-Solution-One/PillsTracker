@@ -1,4 +1,4 @@
-package com.denisp.pillstracker.ui.screens
+package com.denisp.pillstracker.ui.feature.today
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
