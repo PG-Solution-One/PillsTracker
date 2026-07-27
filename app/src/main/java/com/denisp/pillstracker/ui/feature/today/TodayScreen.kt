@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,14 +14,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,11 +27,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.data.TrackerRepository
+import com.denisp.pillstracker.domain.IntakeRules
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.MedicineState
@@ -46,6 +44,7 @@ import com.denisp.pillstracker.notifications.NotificationScheduler
 import com.denisp.pillstracker.ui.FullDateFormatter
 import com.denisp.pillstracker.ui.asTime
 import com.denisp.pillstracker.ui.components.MedicineAppearance
+import com.denisp.pillstracker.ui.components.IntakeStatusControls
 import java.time.LocalDate
 
 @Composable
@@ -86,13 +85,17 @@ fun TodayScreen(
             item {
                 Text(
                     text = "Сегодня",
+                    modifier = Modifier.fillMaxWidth(),
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
                 )
                 Text(
                     text = today.format(FullDateFormatter).replaceFirstChar { it.uppercase() },
+                    modifier = Modifier.fillMaxWidth(),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
             }
 
@@ -238,7 +241,17 @@ private fun DoseGroupCard(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
-                if (doses.size > 1 && doses.any { it.status == IntakeStatus.PENDING }) {
+                if (
+                    doses.size > 1 &&
+                    doses.any {
+                        it.status == IntakeStatus.PENDING &&
+                            IntakeRules.canMarkTaken(
+                                it.medicine.remaining,
+                                it.medicine.tabletsPerIntake,
+                                it.status,
+                            )
+                    }
+                ) {
                     TextButton(onClick = onTakeAll) { Text("Принять всё") }
                 }
             }
@@ -254,6 +267,11 @@ private fun DoseRow(
     dose: ScheduledDose,
     onMark: (IntakeStatus) -> Unit,
 ) {
+    val canTake = IntakeRules.canMarkTaken(
+        remaining = dose.medicine.remaining,
+        tabletsPerIntake = dose.medicine.tabletsPerIntake,
+        currentStatus = dose.status,
+    )
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -287,13 +305,18 @@ private fun DoseRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            StatusBadge(dose.status)
+            IntakeStatusControls(
+                status = dose.status,
+                takenEnabled = canTake,
+                onStatus = onMark,
+            )
         }
-        if (dose.status == IntakeStatus.PENDING) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { onMark(IntakeStatus.TAKEN) }) { Text("Принял") }
-                OutlinedButton(onClick = { onMark(IntakeStatus.SKIPPED) }) { Text("Не принял") }
-            }
+        if (!canTake) {
+            Text(
+                text = "Недостаточно лекарства: осталось ${dose.medicine.remaining.displayAmount()} шт.",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }
@@ -324,6 +347,11 @@ private fun LowStockCard(medicine: Medicine) {
 
 @Composable
 private fun AsNeededCard(medicine: Medicine, onTaken: () -> Unit) {
+    val canTake = IntakeRules.canMarkTaken(
+        remaining = medicine.remaining,
+        tabletsPerIntake = medicine.tabletsPerIntake,
+        currentStatus = IntakeStatus.PENDING,
+    )
     Card(shape = RoundedCornerShape(18.dp)) {
         Row(
             Modifier
@@ -339,8 +367,15 @@ private fun AsNeededCard(medicine: Medicine, onTaken: () -> Unit) {
             ) {
                 Text(medicine.name, fontWeight = FontWeight.SemiBold)
                 Text("${medicine.dosage} · осталось ${medicine.remaining.displayAmount()} шт.")
+                if (!canTake) {
+                    Text(
+                        "Лекарство закончилось",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
-            Button(onClick = onTaken) { Text("Принял") }
+            Button(onClick = onTaken, enabled = canTake) { Text("Принял") }
         }
     }
 }
@@ -361,7 +396,17 @@ private fun DoseDetailsDialog(
             }
         },
         confirmButton = {
-            if (doses.size > 1 && doses.any { it.status == IntakeStatus.PENDING }) {
+            if (
+                doses.size > 1 &&
+                doses.any {
+                    it.status == IntakeStatus.PENDING &&
+                        IntakeRules.canMarkTaken(
+                            it.medicine.remaining,
+                            it.medicine.tabletsPerIntake,
+                            it.status,
+                        )
+                }
+            ) {
                 Button(onClick = onTakeAll) { Text("Принял всё") }
             }
         },
@@ -372,18 +417,6 @@ private fun DoseDetailsDialog(
 @Composable
 private fun MedicineDot(medicine: Medicine) {
     MedicineAppearance(medicine = medicine, size = 25.dp)
-}
-
-@Composable
-private fun StatusBadge(status: IntakeStatus) {
-    val (text, color) = when (status) {
-        IntakeStatus.PENDING -> "Ожидается" to MaterialTheme.colorScheme.surfaceContainerHighest
-        IntakeStatus.TAKEN -> "Принято" to Color(0xFFB8E8D3)
-        IntakeStatus.SKIPPED -> "Пропущено" to MaterialTheme.colorScheme.errorContainer
-    }
-    Surface(color = color, shape = CircleShape) {
-        Text(text, Modifier.padding(horizontal = 10.dp, vertical = 5.dp), style = MaterialTheme.typography.labelMedium)
-    }
 }
 
 @Composable

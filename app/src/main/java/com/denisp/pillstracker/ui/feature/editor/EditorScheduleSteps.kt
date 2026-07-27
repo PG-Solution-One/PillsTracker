@@ -6,26 +6,32 @@ import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccessTime
+import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.ScheduleKind
 import com.denisp.pillstracker.model.dayMask
@@ -113,18 +119,51 @@ internal fun TimeStep(
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    OutlinedButton(onClick = { onChangeTime(index) }) {
+                    Icon(
+                        imageVector = Icons.Rounded.AccessTime,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onChangeTime(index) }
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            if (times.size > 1) "Приём ${index + 1}" else "Время приёма",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelLarge,
+                        )
                         Text(
                             LocalTime.of(schedule.minuteOfDay / 60, schedule.minuteOfDay % 60)
                                 .format(TimeFormatter),
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
                         )
+                        if (scheduleKind != ScheduleKind.SELECTED_DAYS) {
+                            Text(
+                                scheduleKind.title,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                    IconButton(onClick = { onChangeTime(index) }) {
+                        Icon(Icons.Rounded.Edit, contentDescription = "Изменить время")
                     }
                     if (times.size > 1) {
-                        TextButton(onClick = { onRemove(index) }) { Text("Удалить") }
+                        IconButton(onClick = { onRemove(index) }) {
+                            Icon(
+                                Icons.Rounded.DeleteOutline,
+                                contentDescription = "Удалить время",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 }
                 if (scheduleKind == ScheduleKind.SELECTED_DAYS) {
@@ -145,7 +184,7 @@ internal fun TimeStep(
 @Composable
 private fun DaySelector(mask: Int, onToggle: (Int) -> Unit) {
     val labels = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(modifier = Modifier.fillMaxWidth()) {
         labels.forEachIndexed { index, label ->
             val selected = mask and dayMask(index + 1) != 0
             Surface(
@@ -155,12 +194,16 @@ private fun DaySelector(mask: Int, onToggle: (Int) -> Unit) {
                     MaterialTheme.colorScheme.surfaceContainer
                 },
                 shape = CircleShape,
-                modifier = Modifier.clickable { onToggle(index + 1) },
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 2.dp)
+                    .clickable { onToggle(index + 1) },
             ) {
                 Text(
                     label,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(vertical = 9.dp),
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    textAlign = TextAlign.Center,
                 )
             }
         }

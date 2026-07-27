@@ -8,6 +8,7 @@ import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.denisp.pillstracker.model.ThemeMode
@@ -51,8 +53,10 @@ fun SettingsScreen(
             item {
                 Text(
                     "Настройки",
+                    modifier = Modifier.fillMaxWidth(),
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
                 )
             }
             item {
@@ -64,12 +68,24 @@ fun SettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Text("Оформление", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                        ThemeMode.entries.forEach { mode ->
-                            FilterChip(
-                                selected = themeMode == mode,
-                                onClick = { onThemeModeChanged(mode) },
-                                label = { Text(mode.title) },
-                            )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            ThemeMode.entries.forEach { mode ->
+                                FilterChip(
+                                    selected = themeMode == mode,
+                                    onClick = { onThemeModeChanged(mode) },
+                                    modifier = Modifier.weight(1f),
+                                    label = {
+                                        Text(
+                                            text = mode.title,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            textAlign = TextAlign.Center,
+                                        )
+                                    },
+                                )
+                            }
                         }
                     }
                 }

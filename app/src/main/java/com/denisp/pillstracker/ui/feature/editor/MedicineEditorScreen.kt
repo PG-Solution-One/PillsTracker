@@ -1,20 +1,25 @@
 package com.denisp.pillstracker.ui.feature.editor
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -26,9 +31,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.ALL_DAYS_MASK
 import com.denisp.pillstracker.model.DosageUnit
+import com.denisp.pillstracker.model.DEFAULT_MEDICINE_BACKGROUND_ARGB
 import com.denisp.pillstracker.model.MealTiming
 import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.MedicineForm
@@ -58,6 +65,9 @@ fun MedicineEditorScreen(
     var pillShape by remember { mutableStateOf(initialMedicine?.pillShape ?: PillShape.ROUND) }
     var colorArgb by remember { mutableLongStateOf(initialMedicine?.colorArgb ?: MedicinePalette.first()) }
     var secondaryColorArgb by remember { mutableStateOf(initialMedicine?.secondaryColorArgb) }
+    var backgroundColorArgb by remember {
+        mutableLongStateOf(initialMedicine?.backgroundColorArgb ?: DEFAULT_MEDICINE_BACKGROUND_ARGB)
+    }
     var dosageAmount by remember {
         mutableStateOf(initialMedicine?.dosageAmount?.displayAmount().orEmpty())
     }
@@ -135,6 +145,7 @@ fun MedicineEditorScreen(
                 pillShape = pillShape,
                 colorArgb = colorArgb,
                 secondaryColorArgb = secondaryColorArgb,
+                backgroundColorArgb = backgroundColorArgb,
                 dosageAmount = dosage ?: 0.0,
                 dosageUnit = dosageUnit,
                 tabletsPerIntake = tablets ?: 1.0,
@@ -165,11 +176,41 @@ fun MedicineEditorScreen(
         )
     }
 
+    BackHandler {
+        if (currentStep > 0) {
+            showValidation = false
+            currentStep--
+        } else {
+            onBack()
+        }
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(if (initialMedicine == null) "Новое лекарство" else "Редактирование") },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Закрыть") } },
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = if (initialMedicine == null) "Новое лекарство" else "Редактирование",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                },
+                navigationIcon = {
+                    TextButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .width(88.dp)
+                            .heightIn(min = 48.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                    ) {
+                        Text(
+                            text = "Закрыть",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                },
+                actions = { Spacer(Modifier.width(88.dp)) },
             )
         },
         bottomBar = {
@@ -177,8 +218,10 @@ fun MedicineEditorScreen(
                 currentStep = currentStep,
                 stepsCount = editorSteps.size,
                 onPrevious = {
-                    showValidation = false
-                    currentStep--
+                    if (currentStep > 0) {
+                        showValidation = false
+                        currentStep--
+                    }
                 },
                 onNext = {
                     if (isStepValid(currentStep)) {
@@ -213,22 +256,24 @@ fun MedicineEditorScreen(
                         form = form,
                         onFormChanged = {
                             form = it
-                            if (it == MedicineForm.CAPSULE) {
-                                pillShape = PillShape.CAPSULE
-                                if (secondaryColorArgb == null) secondaryColorArgb = MedicinePalette[1]
+                            when (it) {
+                                MedicineForm.CAPSULE -> {
+                                    if (secondaryColorArgb == null) secondaryColorArgb = MedicinePalette[1]
+                                }
+                                MedicineForm.TABLET -> {
+                                    if (pillShape == PillShape.CAPSULE) pillShape = PillShape.ROUND
+                                }
+                                else -> secondaryColorArgb = null
                             }
                         },
                         pillShape = pillShape,
-                        onPillShapeChanged = {
-                            pillShape = it
-                            if (it == PillShape.CAPSULE && secondaryColorArgb == null) {
-                                secondaryColorArgb = MedicinePalette[1]
-                            }
-                        },
+                        onPillShapeChanged = { pillShape = it },
                         colorArgb = colorArgb,
                         onColorChanged = { colorArgb = it },
                         secondaryColorArgb = secondaryColorArgb,
                         onSecondaryColorChanged = { secondaryColorArgb = it },
+                        backgroundColorArgb = backgroundColorArgb,
+                        onBackgroundColorChanged = { backgroundColorArgb = it },
                         showError = showValidation,
                     )
                     1 -> DosageStep(

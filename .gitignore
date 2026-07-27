@@ -16,13 +16,18 @@ captures/
 *.apk
 *.aab
 *.ap_
+*.idsig
 *.dex
 *.hprof
+*.log
+*.tmp
 
 # Signing keys and local secrets
 *.jks
 *.keystore
+key.properties
 keystore.properties
+signing.properties
 secrets.properties
 google-services.json
 service-account*.json

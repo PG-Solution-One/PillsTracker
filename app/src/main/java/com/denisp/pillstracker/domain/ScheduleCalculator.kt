@@ -34,10 +34,12 @@ object ScheduleCalculator {
                     .filter { schedule -> schedule.dayMask and dayMask(date.dayOfWeek.value) != 0 }
                     .map { schedule ->
                         val time = date.atStartOfDay(zoneId).plusMinutes(schedule.minuteOfDay.toLong()).toInstant().toEpochMilli()
+                        val record = statuses[medicine.id to time]
                         ScheduledDose(
                             medicine = medicine,
                             scheduledAt = time,
-                            status = statuses[medicine.id to time]?.status ?: IntakeStatus.PENDING,
+                            status = record?.status ?: IntakeStatus.PENDING,
+                            updatedAt = record?.updatedAt,
                         )
                     }
             }

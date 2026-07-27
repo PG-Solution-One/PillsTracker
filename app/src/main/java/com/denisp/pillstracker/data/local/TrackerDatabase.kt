@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper
 import com.denisp.pillstracker.model.IntakeRecord
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.DosageUnit
+import com.denisp.pillstracker.model.DEFAULT_MEDICINE_BACKGROUND_ARGB
 import com.denisp.pillstracker.model.MealTiming
 import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.MedicineForm
@@ -29,6 +30,7 @@ class TrackerDatabase(context: Context) :
                 pill_shape TEXT NOT NULL,
                 color_argb INTEGER NOT NULL,
                 secondary_color_argb INTEGER,
+                background_color_argb INTEGER NOT NULL,
                 dosage TEXT NOT NULL,
                 dosage_amount REAL NOT NULL,
                 dosage_unit TEXT NOT NULL,
@@ -112,6 +114,12 @@ class TrackerDatabase(context: Context) :
                 }
             }
         }
+        if (oldVersion < 4) {
+            database.execSQL(
+                "ALTER TABLE medicines ADD COLUMN background_color_argb INTEGER NOT NULL " +
+                    "DEFAULT $DEFAULT_MEDICINE_BACKGROUND_ARGB",
+            )
+        }
     }
 
     @Synchronized
@@ -142,6 +150,9 @@ class TrackerDatabase(context: Context) :
                             secondaryColorArgb = cursor.getColumnIndexOrThrow("secondary_color_argb").let { index ->
                                 if (cursor.isNull(index)) null else cursor.getLong(index)
                             },
+                            backgroundColorArgb = cursor.getLong(
+                                cursor.getColumnIndexOrThrow("background_color_argb"),
+                            ),
                             dosageAmount = cursor.getDouble(cursor.getColumnIndexOrThrow("dosage_amount")),
                             dosageUnit = enumValueOf(
                                 cursor.getString(cursor.getColumnIndexOrThrow("dosage_unit")),
@@ -170,12 +181,12 @@ class TrackerDatabase(context: Context) :
     }
 
     @Synchronized
-    fun loadRecords(fromMillis: Long, toMillis: Long): List<IntakeRecord> =
+    fun loadRecords(): List<IntakeRecord> =
         readableDatabase.query(
             "intake_records",
             null,
-            "scheduled_at >= ? AND scheduled_at < ?",
-            arrayOf(fromMillis.toString(), toMillis.toString()),
+            null,
+            null,
             null,
             null,
             "scheduled_at",
@@ -271,6 +282,23 @@ class TrackerDatabase(context: Context) :
             ).use { cursor ->
                 if (cursor.moveToFirst()) enumValueOf<IntakeStatus>(cursor.getString(0)) else IntakeStatus.PENDING
             }
+            if (previous != IntakeStatus.TAKEN && status == IntakeStatus.TAKEN) {
+                val hasStock = database.query(
+                    "medicines",
+                    arrayOf("remaining", "tablets_per_intake"),
+                    "id = ?",
+                    arrayOf(medicineId.toString()),
+                    null,
+                    null,
+                    null,
+                ).use { cursor ->
+                    cursor.moveToFirst() && cursor.getDouble(0) + 0.000_001 >= cursor.getDouble(1)
+                }
+                if (!hasStock) {
+                    database.setTransactionSuccessful()
+                    return
+                }
+            }
             database.insertWithOnConflict(
                 "intake_records",
                 null,
@@ -330,6 +358,7 @@ class TrackerDatabase(context: Context) :
         } else {
             put("secondary_color_argb", medicine.secondaryColorArgb)
         }
+        put("background_color_argb", medicine.backgroundColorArgb)
         put("dosage", medicine.dosage)
         put("dosage_amount", medicine.dosageAmount)
         put("dosage_unit", medicine.dosageUnit.name)
@@ -346,6 +375,6 @@ class TrackerDatabase(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "pills_tracker.db"
-        private const val DATABASE_VERSION = 3
+        private const val DATABASE_VERSION = 4
     }
 }

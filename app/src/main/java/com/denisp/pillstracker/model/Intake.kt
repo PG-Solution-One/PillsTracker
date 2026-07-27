@@ -22,6 +22,7 @@ data class ScheduledDose(
     val medicine: Medicine,
     val scheduledAt: Long,
     val status: IntakeStatus,
+    val updatedAt: Long? = null,
 ) {
     val date: LocalDate
         get() = Instant.ofEpochMilli(scheduledAt).atZone(ZoneId.systemDefault()).toLocalDate()

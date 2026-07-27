@@ -10,13 +10,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -77,13 +84,25 @@ internal fun EditorNavigation(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CircularArrowButton(
-                symbol = "←",
+                icon = Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = "Предыдущий шаг",
                 enabled = currentStep > 0,
+                emphasized = false,
                 onClick = onPrevious,
             )
             CircularArrowButton(
-                symbol = if (currentStep == stepsCount - 1) "✓" else "→",
+                icon = if (currentStep == stepsCount - 1) {
+                    Icons.Rounded.Check
+                } else {
+                    Icons.AutoMirrored.Rounded.ArrowForward
+                },
+                contentDescription = if (currentStep == stepsCount - 1) {
+                    "Сохранить лекарство"
+                } else {
+                    "Следующий шаг"
+                },
                 enabled = true,
+                emphasized = true,
                 onClick = onNext,
             )
         }
@@ -92,17 +111,34 @@ internal fun EditorNavigation(
 
 @Composable
 private fun CircularArrowButton(
-    symbol: String,
+    icon: ImageVector,
+    contentDescription: String,
     enabled: Boolean,
+    emphasized: Boolean,
     onClick: () -> Unit,
 ) {
-    OutlinedButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.size(58.dp),
-        shape = CircleShape,
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
-    ) {
-        Text(symbol, style = MaterialTheme.typography.headlineSmall)
+    val content: @Composable () -> Unit = {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(28.dp),
+        )
+    }
+    if (emphasized) {
+        FilledIconButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier.size(58.dp),
+            shape = CircleShape,
+            content = content,
+        )
+    } else {
+        FilledTonalIconButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier.size(58.dp),
+            shape = CircleShape,
+            content = content,
+        )
     }
 }

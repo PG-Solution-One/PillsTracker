@@ -1,5 +1,6 @@
 package com.denisp.pillstracker.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -18,6 +19,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,6 +55,7 @@ fun PillsTrackerApp(
 ) {
     val snapshot by repository.snapshot.collectAsStateWithLifecycle()
     var section by remember { mutableStateOf(MainSection.TODAY) }
+    val sectionHistory = remember { mutableStateListOf<MainSection>() }
     var editedMedicine by remember { mutableStateOf<Medicine?>(null) }
     var editorOpen by remember { mutableStateOf(false) }
 
@@ -69,6 +72,10 @@ fun PillsTrackerApp(
         return
     }
 
+    BackHandler(enabled = sectionHistory.isNotEmpty()) {
+        section = sectionHistory.removeAt(sectionHistory.lastIndex)
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
@@ -76,7 +83,12 @@ fun PillsTrackerApp(
                 MainSection.entries.forEach { item ->
                     NavigationBarItem(
                         selected = section == item,
-                        onClick = { section = item },
+                        onClick = {
+                            if (section != item) {
+                                sectionHistory.add(section)
+                                section = item
+                            }
+                        },
                         icon = {
                             Icon(
                                 imageVector = item.icon,

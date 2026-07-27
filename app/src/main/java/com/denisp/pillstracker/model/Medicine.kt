@@ -2,11 +2,18 @@ package com.denisp.pillstracker.model
 
 import java.time.LocalDate
 
+const val DEFAULT_MEDICINE_BACKGROUND_ARGB = 0xFFE7EAEEL
+
 enum class MedicineForm(val title: String) {
     TABLET("Таблетка"),
     CAPSULE("Капсула"),
     POWDER("Порошок"),
     INJECTION("Инъекция"),
+    DROPS("Капли"),
+    SYRUP("Сироп"),
+    SPRAY("Спрей"),
+    OINTMENT("Мазь"),
+    SUPPOSITORY("Свечи"),
     OTHER("Другое"),
 }
 
@@ -46,6 +53,7 @@ data class Medicine(
     val pillShape: PillShape = PillShape.ROUND,
     val colorArgb: Long,
     val secondaryColorArgb: Long? = null,
+    val backgroundColorArgb: Long = DEFAULT_MEDICINE_BACKGROUND_ARGB,
     val dosageAmount: Double,
     val dosageUnit: DosageUnit,
     val tabletsPerIntake: Double,

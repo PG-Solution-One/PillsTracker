@@ -6,7 +6,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.data.TrackerRepository
@@ -79,16 +79,22 @@ fun MedicinesScreen(
             item {
                 Text(
                     "Лекарства",
+                    modifier = Modifier.fillMaxWidth(),
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
                 )
             }
             item {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     MedicineState.entries.forEach { state ->
                         FilterChip(
                             selected = selectedState == state,
                             onClick = { selectedState = state },
+                            modifier = Modifier.weight(1f),
                             label = {
                                 Text(
                                     when (state) {
@@ -96,6 +102,8 @@ fun MedicinesScreen(
                                         MedicineState.PAUSED -> "Пауза"
                                         MedicineState.ARCHIVED -> "Архив"
                                     },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center,
                                 )
                             },
                         )

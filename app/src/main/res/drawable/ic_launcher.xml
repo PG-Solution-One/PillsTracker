@@ -1,37 +1,5 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path
-        android:fillColor="#F4F2EC"
-        android:pathData="M0,0h108v108h-108z" />
-    <group
-        android:pivotX="54"
-        android:pivotY="54"
-        android:rotation="-35">
-        <clip-path
-            android:pathData="M34,54C34,43 43,34 54,34C65,34 74,43 74,54C74,65 65,74 54,74C43,74 34,65 34,54Z" />
-        <path
-            android:fillColor="#E8DFC9"
-            android:pathData="M30,30h24v48h-24z" />
-        <path
-            android:fillColor="#789D8A"
-            android:pathData="M54,30h24v48h-24z" />
-        <path
-            android:fillColor="#20FFFFFF"
-            android:pathData="M39,43C43,38 48,36 53,36L53,40C48,40 44,42 41,46Z" />
-        <path
-            android:fillColor="@android:color/transparent"
-            android:pathData="M34,54C34,43 43,34 54,34C65,34 74,43 74,54C74,65 65,74 54,74C43,74 34,65 34,54Z"
-            android:strokeAlpha="0.24"
-            android:strokeColor="#314C40"
-            android:strokeWidth="1.5" />
-        <path
-            android:fillColor="@android:color/transparent"
-            android:pathData="M54,34L54,74"
-            android:strokeAlpha="0.22"
-            android:strokeColor="#314C40"
-            android:strokeWidth="1" />
-    </group>
-</vector>
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/launcher_background" />
+    <item android:drawable="@drawable/ic_launcher_foreground" />
+</layer-list>
