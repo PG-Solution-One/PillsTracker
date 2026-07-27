@@ -74,10 +74,10 @@ fun MedicineAppearance(
 @Composable
 fun MedicineFormSticker(
     form: MedicineForm,
-    shape: PillShape = PillShape.ROUND,
     primaryColorArgb: Long,
-    secondaryColorArgb: Long? = null,
     modifier: Modifier = Modifier,
+    shape: PillShape = PillShape.ROUND,
+    secondaryColorArgb: Long? = null,
     size: Dp = 52.dp,
     backgroundColorArgb: Long = DEFAULT_MEDICINE_BACKGROUND_ARGB,
 ) {

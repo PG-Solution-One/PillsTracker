@@ -1,5 +1,6 @@
 package com.denisp.pillstracker.ui.components
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,20 +8,33 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Keyboard
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,6 +58,7 @@ fun AppDatePickerDialog(
     val state = rememberDatePickerState(
         initialSelectedDateMillis = selectedDate?.toUtcDateMillis(),
         initialDisplayedMonthMillis = selectedDate?.toUtcDateMillis(),
+        initialDisplayMode = DisplayMode.Input,
         selectableDates = object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean =
                 isDateInRange(
@@ -74,14 +89,15 @@ fun AppDatePickerDialog(
             }
         },
         dismissButton = {
-            if (selectedDate != null && onClear != null) {
-                TextButton(
-                    onClick = onClear,
-                    modifier = Modifier.heightIn(min = 48.dp),
-                ) {
-                    Text(stringResource(R.string.clear))
+            Row {
+                if (selectedDate != null && onClear != null) {
+                    TextButton(
+                        onClick = onClear,
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) {
+                        Text(stringResource(R.string.clear))
+                    }
                 }
-            } else {
                 TextButton(
                     onClick = onDismiss,
                     modifier = Modifier.heightIn(min = 48.dp),
@@ -92,16 +108,27 @@ fun AppDatePickerDialog(
         },
     ) {
         Column(Modifier.fillMaxWidth()) {
-            Text(
-                text = title,
-                modifier = Modifier.padding(
-                    start = 24.dp,
-                    top = 24.dp,
-                    end = 24.dp,
-                    bottom = 8.dp,
+            PickerDialogHeader(
+                title = title,
+                actionContentDescription = stringResource(
+                    if (state.displayMode == DisplayMode.Input) {
+                        R.string.open_calendar
+                    } else {
+                        R.string.enter_date_manually
+                    },
                 ),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
+                onAction = {
+                    state.displayMode = if (state.displayMode == DisplayMode.Input) {
+                        DisplayMode.Picker
+                    } else {
+                        DisplayMode.Input
+                    }
+                },
+                actionIcon = if (state.displayMode == DisplayMode.Input) {
+                    Icons.Rounded.CalendarMonth
+                } else {
+                    Icons.Rounded.Keyboard
+                },
             )
             DatePicker(
                 state = state,
@@ -127,6 +154,7 @@ fun AppTimePickerDialog(
         initialMinute = safeInitialMinute % MINUTES_PER_HOUR,
         is24Hour = true,
     )
+    var showDial by rememberSaveable { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -136,19 +164,40 @@ fun AppTimePickerDialog(
             tonalElevation = 6.dp,
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(
-                    text = title,
-                    modifier = Modifier.fillMaxWidth(),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
+                PickerDialogHeader(
+                    title = title,
+                    actionContentDescription = stringResource(
+                        if (showDial) {
+                            R.string.enter_time_manually
+                        } else {
+                            R.string.open_clock
+                        },
+                    ),
+                    onAction = { showDial = !showDial },
+                    actionIcon = if (showDial) {
+                        Icons.Rounded.Keyboard
+                    } else {
+                        Icons.Rounded.Schedule
+                    },
                 )
-                TimePicker(state = state)
+                AnimatedContent(
+                    targetState = showDial,
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    label = "time-picker-mode",
+                ) { dialVisible ->
+                    if (dialVisible) {
+                        TimePicker(state = state)
+                    } else {
+                        TimeInput(state = state)
+                    }
+                }
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
                     horizontalArrangement = Arrangement.End,
                 ) {
                     TextButton(
@@ -172,6 +221,43 @@ fun AppTimePickerDialog(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PickerDialogHeader(
+    title: String,
+    actionContentDescription: String,
+    onAction: () -> Unit,
+    actionIcon: ImageVector,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(
+                start = 24.dp,
+                top = 16.dp,
+                end = 12.dp,
+                bottom = 8.dp,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+        IconButton(
+            onClick = onAction,
+            modifier = Modifier.heightIn(min = 48.dp),
+        ) {
+            Icon(
+                imageVector = actionIcon,
+                contentDescription = actionContentDescription,
+            )
         }
     }
 }

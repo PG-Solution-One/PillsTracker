@@ -86,6 +86,10 @@ NotificationScheduler → TrackerRepository + Android Alarm/Notification API
 - `medicines/MedicineCatalogCard.kt`, `MedicineActionsSheet.kt`, `RefillMedicineDialog.kt` —
   карточка и модальные UI;
 - `editor/MedicineEditorModels.kt` — чистые модели и переходы временного состояния редактора;
+- `editor/EditorMedicineStep.kt`, `EditorDosageStep.kt`, `EditorScheduleSteps.kt` —
+  визуальные шаги, разделённые по назначению;
+- `editor/EditorFields.kt` — переиспользуемые поля внутри редактора;
+- `components/AppDateTimePickerDialogs.kt` — общий ручной и визуальный выбор даты и времени;
 - `settings/ThemeModeSelector.kt` — визуальный выбор темы без логики хранения настроек;
 - `history/HistoryStatistics.kt` — координатор статистики;
 - `history/HistoryStatisticsModel.kt` — расчёты показателей;
@@ -103,6 +107,17 @@ NotificationScheduler → TrackerRepository + Android Alarm/Notification API
   покрываются локальными unit-тестами.
 - Composable-компоненты получают готовые значения и колбэки; они не обращаются к базе
   напрямую.
+
+## Зависимости сборки
+
+- Проект остаётся одним модулем `app`: для текущего размера отдельные Gradle-модули
+  добавили бы больше конфигурации, чем изоляции.
+- Версии Compose согласуются через BOM; прямыми объявлены только библиотеки, API которых
+  используются исходным кодом или тестами.
+- Debug tooling и ViewModel Compose не объявляются напрямую, пока в проекте нет Preview
+  и `ViewModel`.
+- Инструментальные Compose-тесты находятся в `src/androidTest`, чистая логика —
+  в `src/test`.
 
 ## Правила развития проекта
 
