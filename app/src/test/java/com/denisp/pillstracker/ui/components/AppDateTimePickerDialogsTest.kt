@@ -62,4 +62,14 @@ class AppDateTimePickerDialogsTest {
         assertEquals("21", replacementInput(previous = "08", changed = "0821"))
         assertEquals("2", replacementInput(previous = "08", changed = "082"))
     }
+
+    @Test
+    fun `time input accepts only existing hours and minutes`() {
+        assertEquals("00", validatedTimeInput("00", maxExclusive = 24))
+        assertEquals("23", validatedTimeInput("23", maxExclusive = 24))
+        assertNull(validatedTimeInput("24", maxExclusive = 24))
+        assertEquals("59", validatedTimeInput("59", maxExclusive = 60))
+        assertNull(validatedTimeInput("60", maxExclusive = 60))
+        assertNull(validatedTimeInput("99", maxExclusive = 60))
+    }
 }

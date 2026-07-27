@@ -2,6 +2,7 @@ package com.denisp.pillstracker.ui.components
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -111,5 +112,34 @@ class AppDateTimePickerDialogsUiTest {
         composeRule.runOnIdle {
             assertEquals(21 * 60 + 45, selectedMinute.get())
         }
+    }
+
+    @Test
+    fun timeInputRejectsImpossibleValuesAndMovesFocusToMinutes() {
+        composeRule.setContent {
+            MaterialTheme {
+                AppTimePickerDialog(
+                    title = "Время приёма",
+                    initialMinuteOfDay = 8 * 60 + 30,
+                    onDismiss = {},
+                    onTimeSelected = {},
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithTag(TIME_HOUR_INPUT_TAG)
+            .performTextReplacement("29")
+        composeRule
+            .onNodeWithTag(TIME_HOUR_INPUT_TAG)
+            .assertTextEquals("Часы", "08")
+            .performTextReplacement("23")
+        composeRule
+            .onNodeWithTag(TIME_MINUTE_INPUT_TAG)
+            .assertIsFocused()
+            .performTextReplacement("99")
+        composeRule
+            .onNodeWithTag(TIME_MINUTE_INPUT_TAG)
+            .assertTextEquals("Минуты", "30")
     }
 }
