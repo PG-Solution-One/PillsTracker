@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Pills Tracker</string>
+    <string name="app_name">Трекер лекарств</string>
 
     <string name="notification_channel_name">Приём лекарств</string>
     <string name="notification_channel_description">Напоминания о запланированном приёме</string>

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDate
+import java.time.Instant
 import java.time.ZoneId
 
 class TrackerRepository(private val database: TrackerDatabase) {
@@ -39,6 +40,12 @@ class TrackerRepository(private val database: TrackerDatabase) {
     fun setMedicineState(medicineId: Long, state: MedicineState) {
         database.updateMedicineState(medicineId, state)
         refresh()
+    }
+
+    fun deleteMedicine(medicineId: Long): Boolean {
+        val deleted = database.deleteMedicine(medicineId)
+        if (deleted) refresh()
+        return deleted
     }
 
     fun refill(medicineId: Long, amount: Double) {
@@ -87,6 +94,35 @@ class TrackerRepository(private val database: TrackerDatabase) {
             date = date,
             activeOnly = activeOnly,
         )
+
+    fun dosesForDateIncludingManual(
+        date: LocalDate,
+        activeOnly: Boolean = false,
+    ): List<ScheduledDose> {
+        val scheduledDoses = dosesForDate(date, activeOnly)
+        val scheduledKeys = scheduledDoses.map { it.medicine.id to it.scheduledAt }.toSet()
+        val medicinesById = _snapshot.value.medicines.associateBy { it.id }
+        val manualDoses = _snapshot.value.records
+            .asSequence()
+            .filter { record ->
+                val recordDate = Instant.ofEpochMilli(record.scheduledAt)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+                recordDate == date && (record.medicineId to record.scheduledAt) !in scheduledKeys
+            }
+            .mapNotNull { record ->
+                medicinesById[record.medicineId]?.let { medicine ->
+                    ScheduledDose(
+                        medicine = medicine,
+                        scheduledAt = record.scheduledAt,
+                        status = record.status,
+                        updatedAt = record.updatedAt,
+                    )
+                }
+            }
+            .toList()
+        return (scheduledDoses + manualDoses).sortedBy { it.scheduledAt }
+    }
 
     fun dosesAt(scheduledAt: Long): List<ScheduledDose> {
         val date = java.time.Instant.ofEpochMilli(scheduledAt)

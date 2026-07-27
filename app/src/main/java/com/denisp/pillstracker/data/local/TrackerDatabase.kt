@@ -252,6 +252,14 @@ class TrackerDatabase(context: Context) :
     }
 
     @Synchronized
+    fun deleteMedicine(medicineId: Long): Boolean =
+        writableDatabase.delete(
+            "medicines",
+            "id = ?",
+            arrayOf(medicineId.toString()),
+        ) > 0
+
+    @Synchronized
     fun updateRemaining(medicineId: Long, remaining: Double) {
         writableDatabase.update(
             "medicines",

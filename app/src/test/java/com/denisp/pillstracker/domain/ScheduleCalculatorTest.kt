@@ -2,6 +2,8 @@ package com.denisp.pillstracker.domain
 
 import com.denisp.pillstracker.model.ALL_DAYS_MASK
 import com.denisp.pillstracker.model.DosageUnit
+import com.denisp.pillstracker.model.IntakeRecord
+import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.MealTiming
 import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.MedicineForm
@@ -13,6 +15,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
+import java.time.ZoneId
 
 class ScheduleCalculatorTest {
     @Test
@@ -57,6 +60,38 @@ class ScheduleCalculatorTest {
 
         assertTrue(ScheduleCalculator.isScheduledOn(medicine, LocalDate.of(2026, 7, 25)))
         assertFalse(ScheduleCalculator.isScheduledOn(medicine, LocalDate.of(2026, 7, 26)))
+    }
+
+    @Test
+    fun multipleDailyTimesHaveIndependentStatuses() {
+        val date = LocalDate.of(2026, 7, 27)
+        val zone = ZoneId.of("Europe/Moscow")
+        val morning = date.atTime(8, 0).atZone(zone).toInstant().toEpochMilli()
+        val evening = date.atTime(20, 0).atZone(zone).toInstant().toEpochMilli()
+        val medicine = medicine(
+            times = listOf(
+                ScheduleTime(minuteOfDay = 8 * 60, dayMask = ALL_DAYS_MASK),
+                ScheduleTime(minuteOfDay = 20 * 60, dayMask = ALL_DAYS_MASK),
+            ),
+        )
+        val records = listOf(
+            IntakeRecord(
+                medicineId = medicine.id,
+                scheduledAt = morning,
+                status = IntakeStatus.TAKEN,
+                updatedAt = morning + 5 * 60 * 1000,
+            ),
+        )
+
+        val doses = ScheduleCalculator.dosesForDate(
+            medicines = listOf(medicine),
+            records = records,
+            date = date,
+            zoneId = zone,
+        )
+
+        assertEquals(listOf(morning, evening), doses.map { it.scheduledAt })
+        assertEquals(listOf(IntakeStatus.TAKEN, IntakeStatus.PENDING), doses.map { it.status })
     }
 
     private fun medicine(

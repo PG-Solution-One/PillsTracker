@@ -14,7 +14,9 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import com.denisp.pillstracker.data.local.ProfilePreferences
 import com.denisp.pillstracker.data.local.ThemePreferences
+import com.denisp.pillstracker.model.UserProfile
 import com.denisp.pillstracker.notifications.NotificationScheduler.Companion.EXTRA_SCHEDULED_AT
 import com.denisp.pillstracker.ui.PillsTrackerApp
 import com.denisp.pillstracker.ui.theme.PillsTrackerTheme
@@ -22,7 +24,9 @@ import com.denisp.pillstracker.ui.theme.PillsTrackerTheme
 class MainActivity : ComponentActivity() {
     private var notificationScheduledAt by mutableLongStateOf(-1L)
     private lateinit var themePreferences: ThemePreferences
+    private lateinit var profilePreferences: ProfilePreferences
     private var themeMode by mutableStateOf(com.denisp.pillstracker.model.ThemeMode.SYSTEM)
+    private var userProfile by mutableStateOf(UserProfile())
 
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
@@ -31,11 +35,20 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         themePreferences = ThemePreferences(this)
+        profilePreferences = ProfilePreferences(this)
         themeMode = themePreferences.load()
+        userProfile = profilePreferences.load()
         notificationScheduledAt = intent.getLongExtra(EXTRA_SCHEDULED_AT, -1L)
         requestNotificationPermission()
 
         val application = application as PillsTrackerApplication
+        if (
+            !userProfile.onboardingCompleted &&
+            application.repository.snapshot.value.medicines.isNotEmpty()
+        ) {
+            userProfile = userProfile.copy(onboardingCompleted = true)
+            profilePreferences.save(userProfile)
+        }
         setContent {
             PillsTrackerTheme(themeMode = themeMode) {
                 PillsTrackerApp(
@@ -44,9 +57,14 @@ class MainActivity : ComponentActivity() {
                     openedScheduledAt = notificationScheduledAt.takeIf { it >= 0 },
                     onNotificationHandled = { notificationScheduledAt = -1L },
                     themeMode = themeMode,
+                    userProfile = userProfile,
                     onThemeModeChanged = {
                         themeMode = it
                         themePreferences.save(it)
+                    },
+                    onUserProfileChanged = {
+                        userProfile = it
+                        profilePreferences.save(it)
                     },
                 )
             }

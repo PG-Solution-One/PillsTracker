@@ -25,6 +25,8 @@ import com.denisp.pillstracker.notifications.receiver.NotificationActionReceiver
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import java.util.Locale
 
 class NotificationScheduler(
@@ -32,6 +34,11 @@ class NotificationScheduler(
     private val repository: TrackerRepository,
 ) {
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
+    private val _doseReminderEvents = MutableSharedFlow<DoseReminderEvent>(
+        replay = 0,
+        extraBufferCapacity = 16,
+    )
+    val doseReminderEvents = _doseReminderEvents.asSharedFlow()
 
     fun createChannels() {
         val notificationManager = context.getSystemService(NotificationManager::class.java)
@@ -60,6 +67,21 @@ class NotificationScheduler(
             fromMillis = System.currentTimeMillis(),
         )
         timestamps.forEach { scheduleInitial(it) }
+    }
+
+    fun cancelMedicineReminders(medicine: Medicine) {
+        ScheduleCalculator.upcomingTimestamps(
+            medicines = listOf(medicine),
+            fromMillis = System.currentTimeMillis(),
+        ).forEach { scheduledAt ->
+            AlarmType.entries.forEach { type ->
+                alarmManager.cancel(alarmPendingIntent(scheduledAt, type))
+            }
+            dismissDoseNotification(scheduledAt)
+        }
+        NotificationManagerCompat.from(context).cancel(
+            STOCK_NOTIFICATION_BASE + medicine.id.toInt(),
+        )
     }
 
     fun scheduleInitial(scheduledAt: Long) {
@@ -104,13 +126,17 @@ class NotificationScheduler(
     @SuppressLint("MissingPermission")
     fun showDoseNotification(scheduledAt: Long) {
         val doses = repository.dosesAt(scheduledAt).filter { it.status == IntakeStatus.PENDING }
-        if (doses.isEmpty() || !canPostNotifications()) return
+        if (doses.isEmpty()) return
+        _doseReminderEvents.tryEmit(DoseReminderEvent(scheduledAt))
+        if (!canPostNotifications()) return
 
         val names = doses.joinToString(", ") { it.medicine.name }
         val time = Instant.ofEpochMilli(scheduledAt)
             .atZone(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("HH:mm", Locale.forLanguageTag("ru")))
-        val title = if (doses.size == 1) "Пора принять лекарство" else "Пора принять лекарства"
+        val title = context.getString(
+            if (doses.size == 1) R.string.take_medicine else R.string.take_medicines,
+        )
         val content = if (doses.size == 1) {
             "${doses.first().medicine.name} · ${doses.first().medicine.dosage}"
         } else {
@@ -138,17 +164,17 @@ class NotificationScheduler(
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .addAction(
                 0,
-                "Принял всё",
+                context.getString(R.string.notification_take_all),
                 actionPendingIntent(scheduledAt, NotificationAction.TAKE_ALL),
             )
             .addAction(
                 0,
-                "Не принял",
+                context.getString(R.string.notification_skip_all),
                 actionPendingIntent(scheduledAt, NotificationAction.SKIP_ALL),
             )
             .addAction(
                 0,
-                "Отложить 30 мин",
+                context.getString(R.string.notification_snooze),
                 actionPendingIntent(scheduledAt, NotificationAction.SNOOZE),
             )
             .build()
@@ -258,7 +284,7 @@ class NotificationScheduler(
         private const val MEDICINE_CHANNEL = "medicine_reminders"
         private const val STOCK_CHANNEL = "stock_reminders"
         private const val STOCK_NOTIFICATION_BASE = 500_000
-        private const val SNOOZE_MILLIS = 30 * 60 * 1000L
+        private const val SNOOZE_MILLIS = 10 * 60 * 1000L
         private const val EXPIRE_MILLIS = 3 * 60 * 60 * 1000L
     }
 }

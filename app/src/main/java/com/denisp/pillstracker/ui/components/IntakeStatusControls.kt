@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
@@ -22,6 +24,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.IntakeStatus
+import com.denisp.pillstracker.ui.theme.AppStatusColors
 
 @Composable
 fun IntakeStatusControls(
@@ -30,32 +33,43 @@ fun IntakeStatusControls(
     takenEnabled: Boolean = enabled,
     onStatus: (IntakeStatus) -> Unit,
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Row(Modifier.padding(2.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             StatusIconButton(
                 selected = status == IntakeStatus.TAKEN,
                 enabled = takenEnabled,
-                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                selectedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                contentDescription = if (status == IntakeStatus.TAKEN) "Принято" else "Отметить как принято",
-                onClick = { if (status != IntakeStatus.TAKEN) onStatus(IntakeStatus.TAKEN) },
+                selectedContainerColor = AppStatusColors.Taken,
+                selectedContentColor = Color.White,
+                contentDescription = if (status == IntakeStatus.TAKEN) {
+                    "Вернуть в ожидающие"
+                } else {
+                    "Отметить как принято"
+                },
+                onClick = {
+                    onStatus(
+                        if (status == IntakeStatus.TAKEN) IntakeStatus.PENDING else IntakeStatus.TAKEN,
+                    )
+                },
             ) {
                 Icon(Icons.Rounded.Check, contentDescription = null)
             }
             StatusIconButton(
                 selected = status == IntakeStatus.SKIPPED,
                 enabled = enabled,
-                selectedContainerColor = MaterialTheme.colorScheme.errorContainer,
-                selectedContentColor = MaterialTheme.colorScheme.onErrorContainer,
-                contentDescription = if (status == IntakeStatus.SKIPPED) "Пропущено" else "Отметить как пропущено",
-                onClick = { if (status != IntakeStatus.SKIPPED) onStatus(IntakeStatus.SKIPPED) },
+                selectedContainerColor = AppStatusColors.Skipped,
+                selectedContentColor = Color.White,
+                contentDescription = if (status == IntakeStatus.SKIPPED) {
+                    "Вернуть в ожидающие"
+                } else {
+                    "Отметить как пропущено"
+                },
+                onClick = {
+                    onStatus(
+                        if (status == IntakeStatus.SKIPPED) IntakeStatus.PENDING else IntakeStatus.SKIPPED,
+                    )
+                },
             ) {
                 Icon(Icons.Rounded.Close, contentDescription = null)
             }
-        }
     }
 }
 
@@ -69,7 +83,11 @@ private fun StatusIconButton(
     onClick: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    val indicatorColor = if (selected) selectedContainerColor else Color.Transparent
+    val indicatorColor = if (selected) {
+        selectedContainerColor
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHigh
+    }
     val contentColor = if (selected) {
         selectedContentColor
     } else {
@@ -88,8 +106,8 @@ private fun StatusIconButton(
     ) {
         Box(
             modifier = Modifier
-                .size(34.dp)
-                .background(indicatorColor, RoundedCornerShape(11.dp)),
+            .size(36.dp)
+            .background(indicatorColor, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) { content() }

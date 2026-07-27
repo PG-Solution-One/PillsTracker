@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.DosageUnit
@@ -79,6 +80,9 @@ internal fun BasicMedicineStep(
         label = { Text("Название лекарства") },
         placeholder = { Text("Например, Витамин D") },
         singleLine = true,
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.Words,
+        ),
         isError = showError && name.isBlank(),
         supportingText = if (showError && name.isBlank()) {
             { Text("Введите название") }
