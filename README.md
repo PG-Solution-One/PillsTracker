@@ -2,7 +2,7 @@
 
 Локальный трекер лекарств и напоминаний для Android.
 
-Текущая версия: **1.0.0**. Поддерживается Android 8.0 и новее
+Текущая версия: **1.1.0**. Поддерживается Android 8.0 и новее
 (`minSdk 26`, `targetSdk 36`).
 
 История релизов находится в [`CHANGELOG.md`](CHANGELOG.md), описание архитектуры —
@@ -53,9 +53,9 @@
 После сборки создаются:
 
 - устанавливаемый debug APK:
-  `app/build/outputs/pills-tracker/PillsTracker-1.0.0-test.apk`;
+  `app/build/outputs/pills-tracker/PillsTracker-1.1.0-test.apk`;
 - неподписанный release APK:
-  `app/build/outputs/pills-tracker/PillsTracker-1.0.0-release.apk`.
+  `app/build/outputs/pills-tracker/PillsTracker-1.1.0-release.apk`.
 
 Для публикации release APK необходимо настроить собственный keystore и release-подпись.
 
