@@ -3,6 +3,7 @@ package com.denisp.pillstracker.data
 import com.denisp.pillstracker.data.local.TrackerDatabase
 import com.denisp.pillstracker.domain.IntakeRules
 import com.denisp.pillstracker.domain.ScheduleCalculator
+import com.denisp.pillstracker.domain.StockRules
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.MedicineState
@@ -48,8 +49,17 @@ class TrackerRepository(private val database: TrackerDatabase) {
         return deleted
     }
 
-    fun refill(medicineId: Long, amount: Double) {
-        database.updateRemaining(medicineId, amount)
+    fun refill(medicineId: Long, addedAmount: Double) {
+        val medicine = _snapshot.value.medicines.firstOrNull { it.id == medicineId } ?: return
+        if (
+            StockRules.remainingAfterRefill(
+                currentRemaining = medicine.remaining,
+                addedAmount = addedAmount,
+            ) == null
+        ) {
+            return
+        }
+        database.addRemaining(medicineId, addedAmount)
         refresh()
     }
 

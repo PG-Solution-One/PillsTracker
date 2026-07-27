@@ -260,12 +260,16 @@ class TrackerDatabase(context: Context) :
         ) > 0
 
     @Synchronized
-    fun updateRemaining(medicineId: Long, remaining: Double) {
-        writableDatabase.update(
-            "medicines",
-            ContentValues().apply { put("remaining", remaining.coerceAtLeast(0.0)) },
-            "id = ?",
-            arrayOf(medicineId.toString()),
+    fun addRemaining(medicineId: Long, addedAmount: Double) {
+        if (!addedAmount.isFinite() || addedAmount <= 0.0) return
+
+        writableDatabase.execSQL(
+            """
+            UPDATE medicines
+            SET remaining = MAX(0, remaining) + ?
+            WHERE id = ?
+            """.trimIndent(),
+            arrayOf<Any>(addedAmount, medicineId),
         )
     }
 

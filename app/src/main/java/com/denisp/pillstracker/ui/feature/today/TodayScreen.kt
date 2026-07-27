@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.R
 import com.denisp.pillstracker.data.TrackerRepository
 import com.denisp.pillstracker.model.IntakeStatus
+import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.ScheduledDose
 import com.denisp.pillstracker.model.TrackerSnapshot
 import com.denisp.pillstracker.notifications.NotificationScheduler
@@ -34,6 +35,7 @@ fun TodayScreen(
     scheduler: NotificationScheduler,
     userName: String,
     onShowMedicines: () -> Unit,
+    onOpenMedicine: (Medicine) -> Unit,
 ) {
     val today = LocalDate.now()
     val doses = repository.dosesForDateIncludingManual(today, activeOnly = true)
@@ -109,6 +111,7 @@ fun TodayScreen(
                         isNext = uiState.nextDose?.medicine?.id == dose.medicine.id &&
                             uiState.nextDose.scheduledAt == dose.scheduledAt,
                         onStatus = { markDose(dose, it) },
+                        onOpen = { onOpenMedicine(dose.medicine) },
                     )
                 }
             }
@@ -127,6 +130,7 @@ fun TodayScreen(
                                 },
                             )
                         },
+                        onOpen = { onOpenMedicine(medicine) },
                     )
                 }
             }
@@ -134,7 +138,10 @@ fun TodayScreen(
             if (uiState.lowStockMedicines.isNotEmpty()) {
                 item { TodaySectionTitle("Заканчивается") }
                 items(uiState.lowStockMedicines, key = { "stock-${it.id}" }) { medicine ->
-                    LowStockMedicineCard(medicine)
+                    LowStockMedicineCard(
+                        medicine = medicine,
+                        onOpen = { onOpenMedicine(medicine) },
+                    )
                 }
             }
         }

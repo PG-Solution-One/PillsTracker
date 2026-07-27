@@ -5,17 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Medication
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,8 +17,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
@@ -47,13 +36,6 @@ import com.denisp.pillstracker.ui.feature.onboarding.OnboardingScreen
 import com.denisp.pillstracker.ui.feature.settings.SettingsScreen
 import com.denisp.pillstracker.ui.feature.today.TodayScreen
 
-private enum class MainSection(val title: String, val icon: ImageVector) {
-    TODAY("Главная", Icons.Rounded.Home),
-    MEDICINES("Лекарства", Icons.Rounded.Medication),
-    HISTORY("История", Icons.Rounded.History),
-    SETTINGS("Настройки", Icons.Rounded.Settings),
-}
-
 @Composable
 fun PillsTrackerApp(
     repository: TrackerRepository,
@@ -68,10 +50,18 @@ fun PillsTrackerApp(
     val snapshot by repository.snapshot.collectAsStateWithLifecycle()
     var section by remember { mutableStateOf(MainSection.TODAY) }
     val sectionHistory = remember { mutableStateListOf<MainSection>() }
+    var medicineToOpenId by remember { mutableStateOf<Long?>(null) }
     var editedMedicine by remember { mutableStateOf<Medicine?>(null) }
     var editorOpen by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     val reminderQueue = remember { mutableStateListOf<Long>() }
+    val showMedicines: (Long?) -> Unit = { medicineId ->
+        if (section != MainSection.MEDICINES) {
+            sectionHistory.add(section)
+        }
+        medicineToOpenId = medicineId
+        section = MainSection.MEDICINES
+    }
     val enqueueReminder: (Long) -> Unit = { scheduledAt ->
         if (scheduledAt >= 0 && scheduledAt !in reminderQueue) {
             reminderQueue.add(scheduledAt)
@@ -147,30 +137,15 @@ fun PillsTrackerApp(
                     modifier = Modifier.fillMaxSize(),
                     containerColor = MaterialTheme.colorScheme.background,
                     bottomBar = {
-                        NavigationBar(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                            tonalElevation = 4.dp,
-                        ) {
-                            MainSection.entries.forEach { item ->
-                                NavigationBarItem(
-                                    selected = section == item,
-                                    onClick = {
-                                        if (section != item) {
-                                            sectionHistory.add(section)
-                                            section = item
-                                        }
-                                    },
-                                    icon = {
-                                        Icon(
-                                            imageVector = item.icon,
-                                            contentDescription = item.title,
-                                            modifier = Modifier.size(28.dp),
-                                        )
-                                    },
-                                    label = { Text(item.title) },
-                                )
-                            }
-                        }
+                        MainNavigationBar(
+                            selectedSection = section,
+                            onSectionSelected = { item ->
+                                if (section != item) {
+                                    sectionHistory.add(section)
+                                    section = item
+                                }
+                            },
+                        )
                     },
                     floatingActionButton = {
                         if (
@@ -197,18 +172,16 @@ fun PillsTrackerApp(
                                 repository = repository,
                                 scheduler = scheduler,
                                 userName = userProfile.name,
-                                onShowMedicines = {
-                                    if (section != MainSection.MEDICINES) {
-                                        sectionHistory.add(section)
-                                        section = MainSection.MEDICINES
-                                    }
-                                },
+                                onShowMedicines = { showMedicines(null) },
+                                onOpenMedicine = { showMedicines(it.id) },
                             )
 
                             MainSection.MEDICINES -> MedicinesScreen(
                                 snapshot = snapshot,
                                 repository = repository,
                                 scheduler = scheduler,
+                                medicineToOpenId = medicineToOpenId,
+                                onMedicineOpened = { medicineToOpenId = null },
                                 onEdit = {
                                     editedMedicine = it
                                     editorOpen = true

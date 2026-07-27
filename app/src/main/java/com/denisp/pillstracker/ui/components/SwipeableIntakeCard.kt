@@ -62,6 +62,7 @@ fun SwipeableIntakeCard(
     modifier: Modifier = Modifier,
     showScheduledTime: Boolean = true,
     isNext: Boolean = false,
+    onClick: (() -> Unit)? = null,
 ) {
     val canTake = canEdit && IntakeRules.canMarkTaken(
         remaining = dose.medicine.remaining,
@@ -158,8 +159,9 @@ fun SwipeableIntakeCard(
                         hapticTriggered = false
                         selectedStatus?.let(currentOnStatus)
                     },
-                ),
+            ),
             elevated = true,
+            onClick = onClick,
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),

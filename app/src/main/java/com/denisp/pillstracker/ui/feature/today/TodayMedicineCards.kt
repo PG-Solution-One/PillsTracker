@@ -28,6 +28,7 @@ internal fun TodayDoseCard(
     dose: ScheduledDose,
     isNext: Boolean,
     onStatus: (IntakeStatus) -> Unit,
+    onOpen: () -> Unit,
 ) {
     SwipeableIntakeCard(
         dose = dose,
@@ -36,12 +37,17 @@ internal fun TodayDoseCard(
         modifier = Modifier.fillMaxWidth(),
         showScheduledTime = true,
         isNext = isNext,
+        onClick = onOpen,
     )
 }
 
 @Composable
-internal fun LowStockMedicineCard(medicine: Medicine) {
+internal fun LowStockMedicineCard(
+    medicine: Medicine,
+    onOpen: () -> Unit,
+) {
     Surface(
+        onClick = onOpen,
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.errorContainer,
         shape = RoundedCornerShape(16.dp),
@@ -68,13 +74,17 @@ internal fun LowStockMedicineCard(medicine: Medicine) {
 internal fun AsNeededMedicineCard(
     medicine: Medicine,
     onTaken: () -> Unit,
+    onOpen: () -> Unit,
 ) {
     val canTake = IntakeRules.canMarkTaken(
         remaining = medicine.remaining,
         tabletsPerIntake = medicine.tabletsPerIntake,
         currentStatus = IntakeStatus.PENDING,
     )
-    Card(shape = RoundedCornerShape(18.dp)) {
+    Card(
+        onClick = onOpen,
+        shape = RoundedCornerShape(18.dp),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

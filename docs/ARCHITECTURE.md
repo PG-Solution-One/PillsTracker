@@ -16,7 +16,8 @@ com.denisp.pillstracker
 │   └── UserProfile.kt
 ├── domain
 │   ├── IntakeRules.kt
-│   └── ScheduleCalculator.kt
+│   ├── ScheduleCalculator.kt
+│   └── StockRules.kt
 ├── data
 │   ├── TrackerRepository.kt
 │   └── local
@@ -31,6 +32,7 @@ com.denisp.pillstracker
 │       ├── BootReceiver.kt
 │       └── NotificationActionReceiver.kt
 └── ui
+    ├── MainNavigation.kt
     ├── PillsTrackerApp.kt
     ├── components
     ├── theme
@@ -81,7 +83,10 @@ NotificationScheduler → TrackerRepository + Android Alarm/Notification API
 - `today/TodayUiState.kt` — чистое построение состояния;
 - `today/TodayHeader.kt`, `TodayDashboard.kt`, `TodayMedicineCards.kt` — визуальные блоки;
 - `medicines/MedicinesScreen.kt` — состояние каталога и маршрутизация действий;
-- `medicines/MedicineCatalogCard.kt`, `MedicineActionsSheet.kt` — карточка и модальные UI;
+- `medicines/MedicineCatalogCard.kt`, `MedicineActionsSheet.kt`, `RefillMedicineDialog.kt` —
+  карточка и модальные UI;
+- `editor/MedicineEditorModels.kt` — чистые модели и переходы временного состояния редактора;
+- `settings/ThemeModeSelector.kt` — визуальный выбор темы без логики хранения настроек;
 - `history/HistoryStatistics.kt` — координатор статистики;
 - `history/HistoryStatisticsModel.kt` — расчёты показателей;
 - `history/HistorySummaryCards.kt`, `HistoryTrendCard.kt`, `HistoryCalendar.kt` — визуальные
@@ -92,6 +97,8 @@ NotificationScheduler → TrackerRepository + Android Alarm/Notification API
 - Долгоживущие данные лекарств и приёмов принадлежат `TrackerRepository`.
 - Пользовательские настройки принадлежат соответствующим `Preferences`.
 - Временное состояние выбора вкладки, фильтра или диалога принадлежит ближайшему экрану.
+- Запрос открыть конкретное лекарство передаётся между feature по идентификатору через
+  корневой координатор и потребляется экраном каталога один раз.
 - Расчёты, не требующие Android API или Compose, оформляются обычными функциями и
   покрываются локальными unit-тестами.
 - Composable-компоненты получают готовые значения и колбэки; они не обращаются к базе

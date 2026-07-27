@@ -72,6 +72,7 @@ fun MedicineEditorScreen(
     var pillShape by remember { mutableStateOf(initialMedicine?.pillShape ?: PillShape.ROUND) }
     var colorArgb by remember { mutableLongStateOf(initialMedicine?.colorArgb ?: MedicinePalette.first()) }
     var secondaryColorArgb by remember { mutableStateOf(initialMedicine?.secondaryColorArgb) }
+    var secondaryColorAutomaticallyEnabled by remember { mutableStateOf(false) }
     var backgroundColorArgb by remember {
         mutableLongStateOf(initialMedicine?.backgroundColorArgb ?: DEFAULT_MEDICINE_BACKGROUND_ARGB)
     }
@@ -262,15 +263,20 @@ fun MedicineEditorScreen(
                         onNameChanged = { name = it },
                         form = form,
                         onFormChanged = {
+                            val previousForm = form
+                            val colorTransition = secondaryColorAfterFormChange(
+                                previousForm = previousForm,
+                                selectedForm = it,
+                                currentSecondaryColor = secondaryColorArgb,
+                                wasAutomaticallyEnabledForCapsule = secondaryColorAutomaticallyEnabled,
+                                defaultSecondaryColor = MedicinePalette[1],
+                            )
+                            secondaryColorArgb = colorTransition.color
+                            secondaryColorAutomaticallyEnabled =
+                                colorTransition.automaticallyEnabledForCapsule
                             form = it
-                            when (it) {
-                                MedicineForm.CAPSULE -> {
-                                    if (secondaryColorArgb == null) secondaryColorArgb = MedicinePalette[1]
-                                }
-                                MedicineForm.TABLET -> {
-                                    if (pillShape == PillShape.CAPSULE) pillShape = PillShape.ROUND
-                                }
-                                else -> secondaryColorArgb = null
+                            if (it == MedicineForm.TABLET && pillShape == PillShape.CAPSULE) {
+                                pillShape = PillShape.ROUND
                             }
                         },
                         pillShape = pillShape,
@@ -278,7 +284,10 @@ fun MedicineEditorScreen(
                         colorArgb = colorArgb,
                         onColorChanged = { colorArgb = it },
                         secondaryColorArgb = secondaryColorArgb,
-                        onSecondaryColorChanged = { secondaryColorArgb = it },
+                        onSecondaryColorChanged = {
+                            secondaryColorArgb = it
+                            secondaryColorAutomaticallyEnabled = false
+                        },
                         backgroundColorArgb = backgroundColorArgb,
                         onBackgroundColorChanged = { backgroundColorArgb = it },
                         showError = showValidation,

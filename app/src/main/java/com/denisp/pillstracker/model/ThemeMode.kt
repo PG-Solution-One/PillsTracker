@@ -1,7 +1,7 @@
 package com.denisp.pillstracker.model
 
 enum class ThemeMode(val title: String) {
-    SYSTEM("Как на устройстве"),
+    SYSTEM("Системная"),
     LIGHT("Светлая"),
     DARK("Тёмная"),
 }

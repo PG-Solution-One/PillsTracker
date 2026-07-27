@@ -1,5 +1,7 @@
 package com.denisp.pillstracker.ui.feature.editor
 
+import com.denisp.pillstracker.model.MedicineForm
+
 internal data class EditableScheduleTime(
     val minuteOfDay: Int,
     val dayMask: Int,
@@ -15,6 +17,32 @@ internal data class EditorStep(
     val title: String,
     val subtitle: String,
 )
+
+internal data class SecondaryColorTransition(
+    val color: Long?,
+    val automaticallyEnabledForCapsule: Boolean,
+)
+
+internal fun secondaryColorAfterFormChange(
+    previousForm: MedicineForm,
+    selectedForm: MedicineForm,
+    currentSecondaryColor: Long?,
+    wasAutomaticallyEnabledForCapsule: Boolean,
+    defaultSecondaryColor: Long,
+): SecondaryColorTransition = when {
+    selectedForm == MedicineForm.CAPSULE && currentSecondaryColor == null ->
+        SecondaryColorTransition(defaultSecondaryColor, automaticallyEnabledForCapsule = true)
+
+    selectedForm == MedicineForm.TABLET &&
+        previousForm == MedicineForm.CAPSULE &&
+        wasAutomaticallyEnabledForCapsule ->
+        SecondaryColorTransition(color = null, automaticallyEnabledForCapsule = false)
+
+    selectedForm == MedicineForm.TABLET || selectedForm == MedicineForm.CAPSULE ->
+        SecondaryColorTransition(currentSecondaryColor, automaticallyEnabledForCapsule = false)
+
+    else -> SecondaryColorTransition(color = null, automaticallyEnabledForCapsule = false)
+}
 
 internal val editorSteps = listOf(
     EditorStep("Лекарство", "Название, форма и цвет"),
