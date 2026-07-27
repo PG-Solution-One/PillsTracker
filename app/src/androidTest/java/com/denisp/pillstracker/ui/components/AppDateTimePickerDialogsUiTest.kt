@@ -70,11 +70,38 @@ class AppDateTimePickerDialogsUiTest {
             .assertIsDisplayed()
             .performClick()
         composeRule
+            .onNodeWithTag(TIME_DIAL_TAG)
+            .assertIsDisplayed()
+        composeRule
             .onNodeWithContentDescription("Ввести время вручную")
             .assertIsDisplayed()
             .performClick()
         composeRule
             .onNodeWithContentDescription("Открыть циферблат")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun timeDialOpensWhenKeyboardWasVisible() {
+        composeRule.setContent {
+            MaterialTheme {
+                AppTimePickerDialog(
+                    title = "Время приёма",
+                    initialMinuteOfDay = 15 * 60 + 7,
+                    onDismiss = {},
+                    onTimeSelected = {},
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithTag(TIME_HOUR_INPUT_TAG)
+            .performClick()
+        composeRule
+            .onNodeWithContentDescription("Открыть циферблат")
+            .performClick()
+        composeRule
+            .onNodeWithTag(TIME_DIAL_TAG)
             .assertIsDisplayed()
     }
 
