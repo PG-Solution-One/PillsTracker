@@ -2,11 +2,17 @@ package com.denisp.pillstracker.ui.components
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.LocalDate
+import java.util.concurrent.atomic.AtomicInteger
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,7 +46,10 @@ class AppDateTimePickerDialogsUiTest {
         composeRule
             .onNodeWithContentDescription("Открыть календарь")
             .assertIsDisplayed()
-    }
+        composeRule
+            .onNodeWithTag(DATE_INPUT_TAG)
+            .assertIsDisplayed()
+        }
 
     @Test
     fun timePickerStartsWithManualInputAndSwitchesModes() {
@@ -66,5 +75,41 @@ class AppDateTimePickerDialogsUiTest {
         composeRule
             .onNodeWithContentDescription("Открыть циферблат")
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun existingTimeCanBeOverwrittenWithoutClearing() {
+        val selectedMinute = AtomicInteger(-1)
+        composeRule.setContent {
+            MaterialTheme {
+                AppTimePickerDialog(
+                    title = "Время приёма",
+                    initialMinuteOfDay = 8 * 60 + 30,
+                    onDismiss = {},
+                    onTimeSelected = selectedMinute::set,
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithTag(TIME_HOUR_INPUT_TAG)
+            .assertIsDisplayed()
+            .performTextReplacement("21")
+        composeRule
+            .onNodeWithTag(TIME_HOUR_INPUT_TAG)
+            .assertTextEquals("Часы", "21")
+        composeRule
+            .onNodeWithTag(TIME_MINUTE_INPUT_TAG)
+            .performTextReplacement("45")
+        composeRule
+            .onNodeWithTag(TIME_MINUTE_INPUT_TAG)
+            .assertTextEquals("Минуты", "45")
+        composeRule
+            .onNodeWithText("Готово")
+            .performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(21 * 60 + 45, selectedMinute.get())
+        }
     }
 }

@@ -1,48 +1,75 @@
 package com.denisp.pillstracker.ui.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.denisp.pillstracker.R
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +85,6 @@ fun AppDatePickerDialog(
     val state = rememberDatePickerState(
         initialSelectedDateMillis = selectedDate?.toUtcDateMillis(),
         initialDisplayedMonthMillis = selectedDate?.toUtcDateMillis(),
-        initialDisplayMode = DisplayMode.Input,
         selectableDates = object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean =
                 isDateInRange(
@@ -72,70 +98,214 @@ fun AppDatePickerDialog(
                     (maxDate == null || year <= maxDate.year)
         },
     )
+    var showCalendar by rememberSaveable { mutableStateOf(false) }
+    val initialText = selectedDate?.format(DateInputFormatter).orEmpty()
+    var inputValue by remember(selectedDate) {
+        mutableStateOf(
+            TextFieldValue(
+                text = initialText,
+                selection = TextRange(0, initialText.length),
+            ),
+        )
+    }
+    var replaceDateOnNextInput by remember { mutableStateOf(true) }
+    val inputDate = parseDateInput(inputValue.text)
+    val inputDateInRange = inputDate?.takeIf {
+        isDateInRange(it, minDate = minDate, maxDate = maxDate)
+    }
+    val inputError = when {
+        inputValue.text.isBlank() -> null
+        inputValue.text.filter(Char::isDigit).length < DATE_INPUT_DIGITS -> null
+        inputDate == null -> stringResource(R.string.invalid_date)
+        inputDateInRange == null -> stringResource(R.string.date_out_of_range)
+        else -> null
+    }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val inputFocusRequester = remember { FocusRequester() }
+    val selectedCalendarDate = state.selectedDateMillis?.let(::utcMillisToLocalDate)
+    val confirmEnabled = if (showCalendar) {
+        selectedCalendarDate != null
+    } else {
+        inputDateInRange != null
+    }
 
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    state.selectedDateMillis
-                        ?.let(::utcMillisToLocalDate)
-                        ?.let(onDateSelected)
-                },
-                modifier = Modifier.heightIn(min = 48.dp),
-                enabled = state.selectedDateMillis != null,
+    LaunchedEffect(showCalendar) {
+        if (showCalendar) {
+            keyboardController?.hide()
+        } else {
+            delay(INPUT_FOCUS_DELAY_MILLIS)
+            inputFocusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.widthIn(min = 320.dp, max = 400.dp),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
+        ) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(animationSpec = tween(MODE_ANIMATION_MILLIS)),
             ) {
-                Text(stringResource(R.string.choose))
-            }
-        },
-        dismissButton = {
-            Row {
-                if (selectedDate != null && onClear != null) {
+                PickerDialogHeader(
+                    title = title,
+                    actionContentDescription = stringResource(
+                        if (showCalendar) {
+                            R.string.enter_date_manually
+                        } else {
+                            R.string.open_calendar
+                        },
+                    ),
+                    onAction = {
+                        if (showCalendar) {
+                            val calendarText = selectedCalendarDate
+                                ?.format(DateInputFormatter)
+                                .orEmpty()
+                            inputValue = TextFieldValue(
+                                text = calendarText,
+                                selection = TextRange(0, calendarText.length),
+                            )
+                            replaceDateOnNextInput = true
+                        } else {
+                            inputDateInRange?.let { date ->
+                                val millis = date.toUtcDateMillis()
+                                state.selectedDateMillis = millis
+                                state.displayedMonthMillis = millis
+                            }
+                        }
+                        showCalendar = !showCalendar
+                    },
+                    actionIcon = if (showCalendar) {
+                        Icons.Rounded.Keyboard
+                    } else {
+                        Icons.Rounded.CalendarMonth
+                    },
+                )
+                AnimatedContent(
+                    targetState = showCalendar,
+                    transitionSpec = {
+                        val direction = if (targetState) 1 else -1
+                        (
+                            fadeIn(tween(MODE_ANIMATION_MILLIS)) +
+                                slideInHorizontally(tween(MODE_ANIMATION_MILLIS)) {
+                                    direction * it / MODE_SLIDE_DIVISOR
+                                }
+                            ) togetherWith (
+                            fadeOut(tween(MODE_ANIMATION_MILLIS / 2)) +
+                                slideOutHorizontally(tween(MODE_ANIMATION_MILLIS)) {
+                                    -direction * it / MODE_SLIDE_DIVISOR
+                                }
+                            )
+                    },
+                    label = "date-picker-mode",
+                ) { calendarVisible ->
+                    if (calendarVisible) {
+                        DatePicker(
+                            state = state,
+                            title = null,
+                            headline = null,
+                            showModeToggle = false,
+                        )
+                    } else {
+                        OutlinedTextField(
+                            value = inputValue,
+                            onValueChange = { changed ->
+                                val changedText = if (replaceDateOnNextInput) {
+                                    replacementInput(
+                                        previous = inputValue.text,
+                                        changed = changed.text,
+                                    )
+                                } else {
+                                    changed.text
+                                }
+                                replaceDateOnNextInput = false
+                                val formatted = formatDateInput(changedText)
+                                inputValue = TextFieldValue(
+                                    text = formatted,
+                                    selection = TextRange(formatted.length),
+                                )
+                                val parsed = parseDateInput(formatted)
+                                    ?.takeIf {
+                                        isDateInRange(
+                                            it,
+                                            minDate = minDate,
+                                            maxDate = maxDate,
+                                        )
+                                    }
+                                state.selectedDateMillis = parsed?.toUtcDateMillis()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 8.dp)
+                                .testTag(DATE_INPUT_TAG)
+                                .focusRequester(inputFocusRequester)
+                                .onFocusChanged { focus ->
+                                    if (focus.isFocused) {
+                                        replaceDateOnNextInput = true
+                                        inputValue = inputValue.copy(
+                                            selection = TextRange(0, inputValue.text.length),
+                                        )
+                                    }
+                                },
+                            label = { Text(stringResource(R.string.date)) },
+                            placeholder = { Text(stringResource(R.string.date_input_placeholder)) },
+                            supportingText = inputError?.let { error ->
+                                { Text(error) }
+                            },
+                            isError = inputError != null,
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Done,
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    inputDateInRange?.let(onDateSelected)
+                                },
+                            ),
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    if (selectedDate != null && onClear != null) {
+                        TextButton(
+                            onClick = onClear,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) {
+                            Text(stringResource(R.string.clear))
+                        }
+                    }
                     TextButton(
-                        onClick = onClear,
+                        onClick = onDismiss,
                         modifier = Modifier.heightIn(min = 48.dp),
                     ) {
-                        Text(stringResource(R.string.clear))
+                        Text(stringResource(R.string.cancel))
                     }
-                }
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.heightIn(min = 48.dp),
-                ) {
-                    Text(stringResource(R.string.cancel))
+                    TextButton(
+                        onClick = {
+                            val confirmedDate = if (showCalendar) {
+                                selectedCalendarDate
+                            } else {
+                                inputDateInRange
+                            }
+                            confirmedDate?.let(onDateSelected)
+                        },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                        enabled = confirmEnabled,
+                    ) {
+                        Text(stringResource(R.string.choose))
+                    }
                 }
             }
-        },
-    ) {
-        Column(Modifier.fillMaxWidth()) {
-            PickerDialogHeader(
-                title = title,
-                actionContentDescription = stringResource(
-                    if (state.displayMode == DisplayMode.Input) {
-                        R.string.open_calendar
-                    } else {
-                        R.string.enter_date_manually
-                    },
-                ),
-                onAction = {
-                    state.displayMode = if (state.displayMode == DisplayMode.Input) {
-                        DisplayMode.Picker
-                    } else {
-                        DisplayMode.Input
-                    }
-                },
-                actionIcon = if (state.displayMode == DisplayMode.Input) {
-                    Icons.Rounded.CalendarMonth
-                } else {
-                    Icons.Rounded.Keyboard
-                },
-            )
-            DatePicker(
-                state = state,
-                title = null,
-                headline = null,
-                showModeToggle = false,
-            )
         }
     }
 }
@@ -155,70 +325,248 @@ fun AppTimePickerDialog(
         is24Hour = true,
     )
     var showDial by rememberSaveable { mutableStateOf(false) }
+    val initialHourText = (safeInitialMinute / MINUTES_PER_HOUR).twoDigits()
+    val initialMinuteText = (safeInitialMinute % MINUTES_PER_HOUR).twoDigits()
+    var hourValue by remember(initialMinuteOfDay) {
+        mutableStateOf(
+            TextFieldValue(
+                initialHourText,
+                selection = TextRange(0, initialHourText.length),
+            ),
+        )
+    }
+    var minuteValue by remember(initialMinuteOfDay) {
+        mutableStateOf(
+            TextFieldValue(
+                initialMinuteText,
+                selection = TextRange(0, initialMinuteText.length),
+            ),
+        )
+    }
+    var replaceHourOnNextInput by remember { mutableStateOf(true) }
+    var replaceMinuteOnNextInput by remember { mutableStateOf(true) }
+    val inputHour = hourValue.text.toIntOrNull()?.takeIf { it in 0 until HOURS_PER_DAY }
+    val inputMinute = minuteValue.text.toIntOrNull()?.takeIf { it in 0 until MINUTES_PER_HOUR }
+    val hourFocusRequester = remember { FocusRequester() }
+    val minuteFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier.widthIn(min = 280.dp, max = 360.dp),
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = 6.dp,
+    LaunchedEffect(showDial) {
+        if (showDial) {
+            keyboardController?.hide()
+        } else {
+            delay(INPUT_FOCUS_DELAY_MILLIS)
+            hourFocusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .imePadding()
+                .animateContentSize(animationSpec = tween(MODE_ANIMATION_MILLIS)),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                PickerDialogHeader(
-                    title = title,
-                    actionContentDescription = stringResource(
-                        if (showDial) {
-                            R.string.enter_time_manually
-                        } else {
-                            R.string.open_clock
-                        },
-                    ),
-                    onAction = { showDial = !showDial },
-                    actionIcon = if (showDial) {
-                        Icons.Rounded.Keyboard
+            PickerDialogHeader(
+                title = title,
+                actionContentDescription = stringResource(
+                    if (showDial) {
+                        R.string.enter_time_manually
                     } else {
-                        Icons.Rounded.Schedule
+                        R.string.open_clock
                     },
-                )
-                AnimatedContent(
-                    targetState = showDial,
-                    modifier = Modifier.padding(horizontal = 24.dp),
-                    label = "time-picker-mode",
-                ) { dialVisible ->
-                    if (dialVisible) {
-                        TimePicker(state = state)
-                    } else {
-                        TimeInput(state = state)
+                ),
+                onAction = {
+                    if (showDial) {
+                        val hourText = state.hour.twoDigits()
+                        val minuteText = state.minute.twoDigits()
+                        hourValue = TextFieldValue(
+                            hourText,
+                            selection = TextRange(0, hourText.length),
+                        )
+                        minuteValue = TextFieldValue(
+                            minuteText,
+                            selection = TextRange(0, minuteText.length),
+                        )
+                        replaceHourOnNextInput = true
+                        replaceMinuteOnNextInput = true
+                    }
+                    showDial = !showDial
+                },
+                actionIcon = if (showDial) {
+                    Icons.Rounded.Keyboard
+                } else {
+                    Icons.Rounded.Schedule
+                },
+            )
+            AnimatedContent(
+                targetState = showDial,
+                transitionSpec = {
+                    (
+                        fadeIn(tween(MODE_ANIMATION_MILLIS)) +
+                            slideInHorizontally(tween(MODE_ANIMATION_MILLIS)) { it / MODE_SLIDE_DIVISOR }
+                        ) togetherWith (
+                        fadeOut(tween(MODE_ANIMATION_MILLIS / 2)) +
+                            slideOutHorizontally(tween(MODE_ANIMATION_MILLIS)) {
+                                -it / MODE_SLIDE_DIVISOR
+                            }
+                        )
+                },
+                modifier = Modifier.padding(horizontal = 24.dp),
+                label = "time-picker-mode",
+            ) { dialVisible ->
+                if (dialVisible) {
+                    TimePicker(state = state)
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = hourValue,
+                            onValueChange = { changed ->
+                                val changedText = if (replaceHourOnNextInput) {
+                                    replacementInput(
+                                        previous = hourValue.text,
+                                        changed = changed.text,
+                                    )
+                                } else {
+                                    changed.text
+                                }
+                                replaceHourOnNextInput = false
+                                val digits = normalizeTimeInput(changedText)
+                                hourValue = TextFieldValue(
+                                    text = digits,
+                                    selection = TextRange(digits.length),
+                                )
+                                digits.toIntOrNull()
+                                    ?.takeIf { it in 0 until HOURS_PER_DAY }
+                                    ?.let { state.hour = it }
+                            },
+                            modifier = Modifier
+                                .width(128.dp)
+                                .testTag(TIME_HOUR_INPUT_TAG)
+                                .focusRequester(hourFocusRequester)
+                                .onFocusChanged { focus ->
+                                    if (focus.isFocused) {
+                                        replaceHourOnNextInput = true
+                                        hourValue = hourValue.copy(
+                                            selection = TextRange(0, hourValue.text.length),
+                                        )
+                                    }
+                                },
+                            label = { Text(stringResource(R.string.hours)) },
+                            placeholder = { Text(stringResource(R.string.hours_placeholder)) },
+                            isError = hourValue.text.isNotEmpty() && inputHour == null,
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.headlineLarge.copy(
+                                textAlign = TextAlign.Center,
+                            ),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Next,
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { minuteFocusRequester.requestFocus() },
+                            ),
+                        )
+                        Text(
+                            text = ":",
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        OutlinedTextField(
+                            value = minuteValue,
+                            onValueChange = { changed ->
+                                val changedText = if (replaceMinuteOnNextInput) {
+                                    replacementInput(
+                                        previous = minuteValue.text,
+                                        changed = changed.text,
+                                    )
+                                } else {
+                                    changed.text
+                                }
+                                replaceMinuteOnNextInput = false
+                                val digits = normalizeTimeInput(changedText)
+                                minuteValue = TextFieldValue(
+                                    text = digits,
+                                    selection = TextRange(digits.length),
+                                )
+                                digits.toIntOrNull()
+                                    ?.takeIf { it in 0 until MINUTES_PER_HOUR }
+                                    ?.let { state.minute = it }
+                            },
+                            modifier = Modifier
+                                .width(128.dp)
+                                .testTag(TIME_MINUTE_INPUT_TAG)
+                                .focusRequester(minuteFocusRequester)
+                                .onFocusChanged { focus ->
+                                    if (focus.isFocused) {
+                                        replaceMinuteOnNextInput = true
+                                        minuteValue = minuteValue.copy(
+                                            selection = TextRange(0, minuteValue.text.length),
+                                        )
+                                    }
+                                },
+                            label = { Text(stringResource(R.string.minutes)) },
+                            placeholder = { Text(stringResource(R.string.minutes_placeholder)) },
+                            isError = minuteValue.text.isNotEmpty() && inputMinute == null,
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.headlineLarge.copy(
+                                textAlign = TextAlign.Center,
+                            ),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Done,
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    if (inputHour != null && inputMinute != null) {
+                                        onTimeSelected(minuteOfDay(inputHour, inputMinute))
+                                    }
+                                },
+                            ),
+                        )
                     }
                 }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
-                    horizontalArrangement = Arrangement.End,
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.heightIn(min = 48.dp),
                 ) {
-                    TextButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) {
-                        Text(stringResource(R.string.cancel))
-                    }
-                    TextButton(
-                        onClick = {
-                            onTimeSelected(
-                                minuteOfDay(
-                                    hour = state.hour,
-                                    minute = state.minute,
-                                ),
-                            )
-                        },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) {
-                        Text(stringResource(R.string.done))
-                    }
+                    Text(stringResource(R.string.cancel))
+                }
+                TextButton(
+                    onClick = {
+                        val selectedMinute = if (showDial) {
+                            minuteOfDay(state.hour, state.minute)
+                        } else {
+                            inputHour?.let { hour ->
+                                inputMinute?.let { minute -> minuteOfDay(hour, minute) }
+                            }
+                        }
+                        selectedMinute?.let(onTimeSelected)
+                    },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                    enabled = showDial || inputHour != null && inputMinute != null,
+                ) {
+                    Text(stringResource(R.string.done))
                 }
             }
         }
@@ -280,6 +628,64 @@ internal fun minuteOfDay(hour: Int, minute: Int): Int =
     hour.coerceIn(0, HOURS_PER_DAY - 1) * MINUTES_PER_HOUR +
         minute.coerceIn(0, MINUTES_PER_HOUR - 1)
 
+internal fun formatDateInput(value: String): String {
+    val allDigits = value.filter(Char::isDigit)
+    val digits = if (allDigits.length > DATE_INPUT_DIGITS) {
+        allDigits.takeLast(DATE_INPUT_DIGITS)
+    } else {
+        allDigits
+    }
+    return buildString {
+        digits.forEachIndexed { index, digit ->
+            if (index == 2 || index == 4) append('.')
+            append(digit)
+        }
+    }
+}
+
+internal fun parseDateInput(value: String): LocalDate? {
+    val digits = value.filter(Char::isDigit)
+    if (digits.length != DATE_INPUT_DIGITS) return null
+    return runCatching {
+        LocalDate.of(
+            digits.substring(4, 8).toInt(),
+            digits.substring(2, 4).toInt(),
+            digits.substring(0, 2).toInt(),
+        )
+    }.getOrNull()
+}
+
+internal fun normalizeTimeInput(value: String): String {
+    val digits = value.filter(Char::isDigit)
+    return if (digits.length > TIME_INPUT_DIGITS) {
+        digits.takeLast(TIME_INPUT_DIGITS)
+    } else {
+        digits
+    }
+}
+
+internal fun replacementInput(previous: String, changed: String): String {
+    val previousDigits = previous.filter(Char::isDigit)
+    val changedDigits = changed.filter(Char::isDigit)
+    return when {
+        changedDigits.length <= previousDigits.length -> changedDigits
+        changedDigits.startsWith(previousDigits) -> changedDigits.drop(previousDigits.length)
+        changedDigits.endsWith(previousDigits) -> changedDigits.dropLast(previousDigits.length)
+        else -> changedDigits
+    }
+}
+
+private fun Int.twoDigits(): String = toString().padStart(2, '0')
+
+private val DateInputFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.uuuu")
+internal const val DATE_INPUT_TAG = "date-input"
+internal const val TIME_HOUR_INPUT_TAG = "time-hour-input"
+internal const val TIME_MINUTE_INPUT_TAG = "time-minute-input"
+private const val DATE_INPUT_DIGITS = 8
+private const val TIME_INPUT_DIGITS = 2
+private const val INPUT_FOCUS_DELAY_MILLIS = 280L
+private const val MODE_ANIMATION_MILLIS = 280
+private const val MODE_SLIDE_DIVISOR = 6
 private const val MINUTES_PER_HOUR = 60
 private const val HOURS_PER_DAY = 24
 private const val MINUTES_PER_DAY = HOURS_PER_DAY * MINUTES_PER_HOUR

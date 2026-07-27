@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.R
 
@@ -42,7 +43,9 @@ internal fun MainNavigationBar(
                         MainSection.MEDICINES -> Icon(
                             painter = painterResource(R.drawable.medicine_form_capsule),
                             contentDescription = item.title,
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier
+                                .size(27.dp)
+                                .rotate(-32f),
                         )
 
                         MainSection.TODAY -> MainSectionIcon(
