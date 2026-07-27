@@ -9,6 +9,8 @@ import java.util.Locale
 val RussianLocale: Locale = Locale.forLanguageTag("ru")
 val TimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", RussianLocale)
 val DateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM", RussianLocale)
+val DateWithYearFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("d MMMM yyyy", RussianLocale)
 val FullDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM, EEEE", RussianLocale)
 
 fun Long.asTime(): String =

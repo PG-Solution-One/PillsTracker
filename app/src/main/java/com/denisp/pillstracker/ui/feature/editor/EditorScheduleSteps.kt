@@ -1,8 +1,5 @@
 package com.denisp.pillstracker.ui.feature.editor
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
-import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessTime
+import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Card
@@ -35,8 +33,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.ScheduleKind
 import com.denisp.pillstracker.model.dayMask
-import com.denisp.pillstracker.ui.DateFormatter
+import com.denisp.pillstracker.ui.DateWithYearFormatter
 import com.denisp.pillstracker.ui.TimeFormatter
+import com.denisp.pillstracker.ui.theme.AppPickerField
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -212,38 +211,10 @@ private fun DaySelector(mask: Int, onToggle: (Int) -> Unit) {
 
 @Composable
 private fun DateButton(label: String, date: LocalDate, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label)
-            Text(date.format(DateFormatter), fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
-internal fun showDatePicker(
-    context: Context,
-    initial: LocalDate,
-    onSelected: (LocalDate) -> Unit,
-) {
-    DatePickerDialog(
-        context,
-        { _, year, month, day -> onSelected(LocalDate.of(year, month + 1, day)) },
-        initial.year,
-        initial.monthValue - 1,
-        initial.dayOfMonth,
-    ).show()
-}
-
-internal fun showTimePicker(
-    context: Context,
-    initialMinute: Int,
-    onSelected: (Int) -> Unit,
-) {
-    TimePickerDialog(
-        context,
-        { _, hour, minute -> onSelected(hour * 60 + minute) },
-        initialMinute / 60,
-        initialMinute % 60,
-        true,
-    ).show()
+    AppPickerField(
+        label = label,
+        value = date.format(DateWithYearFormatter),
+        onClick = onClick,
+        leadingIcon = Icons.Rounded.CalendarMonth,
+    )
 }

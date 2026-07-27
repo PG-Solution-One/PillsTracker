@@ -30,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.ALL_DAYS_MASK
@@ -46,8 +45,15 @@ import com.denisp.pillstracker.model.ScheduleTime
 import com.denisp.pillstracker.model.dayMask
 import com.denisp.pillstracker.model.displayAmount
 import com.denisp.pillstracker.ui.MedicinePalette
+import com.denisp.pillstracker.ui.components.AppDatePickerDialog
+import com.denisp.pillstracker.ui.components.AppTimePickerDialog
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+
+private enum class CourseDatePickerTarget(val title: String) {
+    START("Дата начала курса"),
+    END("Дата окончания курса"),
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,9 +62,10 @@ fun MedicineEditorScreen(
     onBack: () -> Unit,
     onSave: (Medicine) -> Unit,
 ) {
-    val context = LocalContext.current
     var currentStep by remember { mutableIntStateOf(0) }
     var showValidation by remember { mutableStateOf(false) }
+    var datePickerTarget by remember { mutableStateOf<CourseDatePickerTarget?>(null) }
+    var editingTimeIndex by remember { mutableStateOf<Int?>(null) }
 
     var name by remember { mutableStateOf(initialMedicine?.name.orEmpty()) }
     var form by remember { mutableStateOf(initialMedicine?.form ?: MedicineForm.TABLET) }
@@ -294,22 +301,11 @@ fun MedicineEditorScreen(
                     )
                     2 -> CourseStep(
                         startDate = startDate,
-                        onPickStartDate = {
-                            showDatePicker(context, startDate) {
-                                startEpochDay = it.toEpochDay()
-                                if (LocalDate.ofEpochDay(endEpochDay).isBefore(it)) {
-                                    endEpochDay = it.toEpochDay()
-                                }
-                            }
-                        },
+                        onPickStartDate = { datePickerTarget = CourseDatePickerTarget.START },
                         endMode = courseEndMode,
                         onEndModeChanged = { courseEndMode = it },
                         endDate = LocalDate.ofEpochDay(endEpochDay),
-                        onPickEndDate = {
-                            showDatePicker(context, LocalDate.ofEpochDay(endEpochDay)) {
-                                endEpochDay = it.toEpochDay()
-                            }
-                        },
+                        onPickEndDate = { datePickerTarget = CourseDatePickerTarget.END },
                         courseDays = courseDays,
                         onCourseDaysChanged = { courseDays = it.filter(Char::isDigit) },
                         scheduleKind = scheduleKind,
@@ -320,12 +316,7 @@ fun MedicineEditorScreen(
                         scheduleKind = scheduleKind,
                         times = times,
                         onAdd = { times.add(EditableScheduleTime(8 * 60, ALL_DAYS_MASK)) },
-                        onChangeTime = { index ->
-                            val current = times[index]
-                            showTimePicker(context, current.minuteOfDay) {
-                                times[index] = current.copy(minuteOfDay = it)
-                            }
-                        },
+                        onChangeTime = { index -> editingTimeIndex = index },
                         onToggleDay = { index, day ->
                             val current = times[index]
                             times[index] = current.copy(dayMask = current.dayMask xor dayMask(day))
@@ -350,5 +341,44 @@ fun MedicineEditorScreen(
                 Spacer(Modifier.height(16.dp))
             }
         }
+    }
+
+    datePickerTarget?.let { target ->
+        val selectedDate = when (target) {
+            CourseDatePickerTarget.START -> startDate
+            CourseDatePickerTarget.END -> LocalDate.ofEpochDay(endEpochDay)
+        }
+        AppDatePickerDialog(
+            title = target.title,
+            selectedDate = selectedDate,
+            minDate = if (target == CourseDatePickerTarget.END) startDate else null,
+            onDismiss = { datePickerTarget = null },
+            onDateSelected = { selected ->
+                when (target) {
+                    CourseDatePickerTarget.START -> {
+                        startEpochDay = selected.toEpochDay()
+                        if (LocalDate.ofEpochDay(endEpochDay).isBefore(selected)) {
+                            endEpochDay = selected.toEpochDay()
+                        }
+                    }
+
+                    CourseDatePickerTarget.END -> endEpochDay = selected.toEpochDay()
+                }
+                datePickerTarget = null
+            },
+        )
+    }
+
+    editingTimeIndex?.let { index ->
+        val current = times[index]
+        AppTimePickerDialog(
+            title = if (times.size > 1) "Время приёма ${index + 1}" else "Время приёма",
+            initialMinuteOfDay = current.minuteOfDay,
+            onDismiss = { editingTimeIndex = null },
+            onTimeSelected = { selectedMinute ->
+                times[index] = current.copy(minuteOfDay = selectedMinute)
+                editingTimeIndex = null
+            },
+        )
     }
 }
