@@ -1,0 +1,92 @@
+name: Публикация подписанного Android APK
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Тег релиза, например v1.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Сборка и публикация APK
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+    steps:
+      - name: Получение исходного кода
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Настройка Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Проверка версии релиза
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag_version="${RELEASE_TAG#v}"
+          app_version="$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts)"
+          if [[ "$tag_version" != "$app_version" ]]; then
+            echo "Тег $RELEASE_TAG не соответствует versionName $app_version" >&2
+            exit 1
+          fi
+          echo "APP_VERSION=$app_version" >> "$GITHUB_ENV"
+
+      - name: Восстановление ключа подписи
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$KEYSTORE_BASE64" ]]; then
+            echo "Не настроен секрет ANDROID_KEYSTORE_BASE64" >&2
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/pills-tracker-release.jks"
+
+      - name: Тесты, анализ и сборка release
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/pills-tracker-release.jks
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew testDebugUnitTest lintDebug assembleRelease --no-daemon
+
+      - name: Проверка подписи и контрольная сумма
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="app/build/outputs/pills-tracker/PillsTracker-${APP_VERSION}-release.apk"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -f "$apk"
+          test -n "$apksigner"
+          "$apksigner" verify --verbose --print-certs "$apk"
+          sha256sum "$apk" > "$apk.sha256"
+
+      - name: Публикация APK в GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          apk="app/build/outputs/pills-tracker/PillsTracker-${APP_VERSION}-release.apk"
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --title "Pills Tracker ${APP_VERSION}" \
+              --generate-notes
+          fi
+          gh release upload "$RELEASE_TAG" "$apk" "$apk.sha256" --clobber
