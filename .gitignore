@@ -21,6 +21,7 @@ captures/
 *.hprof
 *.log
 *.tmp
+tmp/
 
 # Signing keys and local secrets
 *.jks
