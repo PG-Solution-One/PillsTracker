@@ -1,22 +1,55 @@
 package com.denisp.pillstracker.ui.feature.editor
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import com.denisp.pillstracker.ui.theme.AppSectionHeader
+import com.denisp.pillstracker.ui.theme.AppSpacing
+import com.denisp.pillstracker.ui.theme.AppSurfaceCard
+
+@Composable
+internal fun EditorStepContent(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.Lg),
+        content = content,
+    )
+}
+
+@Composable
+internal fun EditorSectionCard(
+    title: String,
+    modifier: Modifier = Modifier,
+    supportingText: String? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    AppSurfaceCard(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(AppSpacing.Xl),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.Lg),
+        ) {
+            AppSectionHeader(
+                title = title,
+                supportingText = supportingText,
+            )
+            content()
+        }
+    }
+}
 
 @Composable
 internal fun <T> SelectionField(
@@ -27,28 +60,24 @@ internal fun <T> SelectionField(
     title: (T) -> String,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    Box(modifier = modifier.fillMaxWidth()) {
-        OutlinedButton(
-            onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth(),
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.Sm),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.Sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.Sm),
         ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column(horizontalAlignment = Alignment.Start) {
-                    Text(label, style = MaterialTheme.typography.labelSmall)
-                    Text(title(selected), style = MaterialTheme.typography.bodyLarge)
-                }
-                Text("⌄")
-            }
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(title(option)) },
-                    onClick = {
-                        onSelected(option)
-                        expanded = false
-                    },
+                FilterChip(
+                    selected = option == selected,
+                    onClick = { onSelected(option) },
+                    label = { Text(title(option)) },
                 )
             }
         }

@@ -1,4 +1,4 @@
-name: Публикация подписанного Android APK
+name: Публикация подписанного Android-релиза
 
 on:
   push:
@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   release:
-    name: Сборка и публикация APK
+    name: Сборка APK и AAB
     runs-on: ubuntu-latest
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
@@ -64,17 +64,27 @@ jobs:
           ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew testDebugUnitTest lintDebug assembleRelease --no-daemon
+        run: ./gradlew testDebugUnitTest lintDebug assembleRelease bundleRelease --no-daemon
 
       - name: Проверка подписи
         shell: bash
         run: |
           set -euo pipefail
           apk="app/build/outputs/pills-tracker/PillsTracker-${APP_VERSION}-release.apk"
+          aab="app/build/outputs/bundle/release/app-release.aab"
           apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -f "$apk"
+          test -f "$aab"
           test -n "$apksigner"
           "$apksigner" verify --verbose --print-certs "$apk"
+          jarsigner -verify "$aab"
+
+      - name: Сохранение AAB для Google Play
+        uses: actions/upload-artifact@v4
+        with:
+          name: PillsTracker-${{ env.APP_VERSION }}-play
+          path: app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
 
       - name: Подготовка описания релиза
         shell: bash

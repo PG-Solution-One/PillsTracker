@@ -1,16 +1,11 @@
 package com.denisp.pillstracker.ui.feature.editor
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -22,6 +17,8 @@ import com.denisp.pillstracker.model.MealTiming
 import com.denisp.pillstracker.model.ScheduleKind
 import com.denisp.pillstracker.model.displayAmount
 import com.denisp.pillstracker.ui.DateFormatter
+import com.denisp.pillstracker.ui.theme.AppSpacing
+import com.denisp.pillstracker.ui.theme.AppTextField
 import java.time.LocalDate
 
 @Composable
@@ -38,41 +35,44 @@ internal fun DetailsStep(
     startDate: LocalDate,
     endDate: LocalDate?,
 ) {
-    SelectionField(
-        "Связь с едой",
-        mealTiming,
-        MealTiming.entries,
-        onMealTimingChanged,
-        MealTiming::title,
-    )
-    OutlinedTextField(
-        value = note,
-        onValueChange = { onNoteChanged(limitMedicineNote(it)) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 130.dp),
-        label = { Text("Заметка") },
-        placeholder = { Text("Например, запивать стаканом воды") },
-        keyboardOptions = KeyboardOptions(
-            capitalization = KeyboardCapitalization.Sentences,
-        ),
-        minLines = 3,
-        maxLines = 4,
-        supportingText = {
-            Text(
-                text = "${medicineNoteLength(note)} / $MAX_MEDICINE_NOTE_LENGTH",
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.End,
+    EditorStepContent {
+        EditorSectionCard(
+            title = "Инструкция",
+            supportingText = "Дополнительные условия приёма лекарства",
+        ) {
+            SelectionField(
+                label = "Связь с едой",
+                selected = mealTiming,
+                options = MealTiming.entries,
+                onSelected = onMealTimingChanged,
+                title = MealTiming::title,
             )
-        },
-    )
-    Card(shape = RoundedCornerShape(20.dp)) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                "Проверьте назначение",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
+            AppTextField(
+                value = note,
+                onValueChange = { onNoteChanged(limitMedicineNote(it)) },
+                label = "Заметка",
+                modifier = Modifier.heightIn(min = 130.dp),
+                placeholder = "Например, запивать стаканом воды",
+                singleLine = false,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                ),
+                minLines = 3,
+                maxLines = 4,
+                supportingText = {
+                    Text(
+                        text = "${medicineNoteLength(note)} / $MAX_MEDICINE_NOTE_LENGTH",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.End,
+                    )
+                },
             )
+        }
+
+        EditorSectionCard(
+            title = "Проверьте назначение",
+            supportingText = "Эти данные будут использованы для расписания и напоминаний",
+        ) {
             SummaryLine("Лекарство", name)
             SummaryLine("Дозировка", "$dosage · ${tabletsPerIntake.displayAmount()} шт.")
             SummaryLine(
@@ -97,8 +97,20 @@ internal fun DetailsStep(
 
 @Composable
 private fun SummaryLine(label: String, value: String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 16.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.Lg),
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.weight(0.38f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            modifier = Modifier.weight(0.62f),
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.End,
+        )
     }
 }

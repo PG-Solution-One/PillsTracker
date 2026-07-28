@@ -2,19 +2,17 @@ package com.denisp.pillstracker.ui
 
 val MedicinePalette = listOf(
     0xFFF5F5F5,
-    0xFFF4D35E,
-    0xFFEFA4B8,
-    0xFFF29E4C,
-    0xFF669BBC,
-    0xFF9C6644,
-    0xFF70A288,
-    0xFFD96767,
-    0xFF9D79BC,
-    0xFF55B5B1,
-    0xFF9A9A9A,
-    0xFF343434,
-    0xFFD8C3A5,
-    0xFFDDE8EC,
+    0xFFF2D45C,
+    0xFFEFA0B7,
+    0xFFE9A15B,
+    0xFF73A7D8,
+    0xFF9A725C,
+    0xFF73A979,
+    0xFFD96868,
+    0xFF987BB8,
+    0xFFA8ADB3,
+    0xFF34363A,
+    0xFF65B8B0,
 )
 
 val MedicineBackgroundPalette = listOf(

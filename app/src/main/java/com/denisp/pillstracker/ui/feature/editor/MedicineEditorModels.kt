@@ -14,6 +14,19 @@ internal fun limitMedicineNote(note: String): String {
 
 internal fun medicineNoteLength(note: String): Int = note.codePointCount(0, note.length)
 
+internal fun medicineFormIndexForPage(page: Int, formsCount: Int): Int {
+    require(formsCount > 0)
+    return Math.floorMod(page, formsCount)
+}
+
+internal fun initialMedicineFormPage(selectedIndex: Int, formsCount: Int): Int {
+    require(formsCount > 0)
+    require(selectedIndex in 0 until formsCount)
+
+    val middlePage = Int.MAX_VALUE / 2
+    return middlePage - medicineFormIndexForPage(middlePage, formsCount) + selectedIndex
+}
+
 internal data class EditableScheduleTime(
     val minuteOfDay: Int,
     val dayMask: Int,
@@ -30,30 +43,14 @@ internal data class EditorStep(
     val subtitle: String,
 )
 
-internal data class SecondaryColorTransition(
-    val color: Long?,
-    val automaticallyEnabledForCapsule: Boolean,
-)
-
 internal fun secondaryColorAfterFormChange(
-    previousForm: MedicineForm,
     selectedForm: MedicineForm,
     currentSecondaryColor: Long?,
-    wasAutomaticallyEnabledForCapsule: Boolean,
-    defaultSecondaryColor: Long,
-): SecondaryColorTransition = when {
-    selectedForm == MedicineForm.CAPSULE && currentSecondaryColor == null ->
-        SecondaryColorTransition(defaultSecondaryColor, automaticallyEnabledForCapsule = true)
-
-    selectedForm == MedicineForm.TABLET &&
-        previousForm == MedicineForm.CAPSULE &&
-        wasAutomaticallyEnabledForCapsule ->
-        SecondaryColorTransition(color = null, automaticallyEnabledForCapsule = false)
-
+): Long? = when {
     selectedForm == MedicineForm.TABLET || selectedForm == MedicineForm.CAPSULE ->
-        SecondaryColorTransition(currentSecondaryColor, automaticallyEnabledForCapsule = false)
+        currentSecondaryColor
 
-    else -> SecondaryColorTransition(color = null, automaticallyEnabledForCapsule = false)
+    else -> null
 }
 
 internal val editorSteps = listOf(

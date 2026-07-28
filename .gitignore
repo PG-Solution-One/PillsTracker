@@ -24,6 +24,7 @@ captures/
 tmp/
 
 # Signing keys and local secrets
+keystore/
 *.jks
 *.keystore
 key.properties

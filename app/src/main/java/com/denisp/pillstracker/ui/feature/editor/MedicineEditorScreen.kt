@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -20,7 +21,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -47,6 +50,7 @@ import com.denisp.pillstracker.model.displayAmount
 import com.denisp.pillstracker.ui.MedicinePalette
 import com.denisp.pillstracker.ui.components.AppDatePickerDialog
 import com.denisp.pillstracker.ui.components.AppTimePickerDialog
+import com.denisp.pillstracker.ui.theme.AppSpacing
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -66,13 +70,13 @@ fun MedicineEditorScreen(
     var showValidation by remember { mutableStateOf(false) }
     var datePickerTarget by remember { mutableStateOf<CourseDatePickerTarget?>(null) }
     var editingTimeIndex by remember { mutableStateOf<Int?>(null) }
+    val editorScrollState = rememberScrollState()
 
     var name by remember { mutableStateOf(initialMedicine?.name.orEmpty()) }
     var form by remember { mutableStateOf(initialMedicine?.form ?: MedicineForm.TABLET) }
     var pillShape by remember { mutableStateOf(initialMedicine?.pillShape ?: PillShape.ROUND) }
     var colorArgb by remember { mutableLongStateOf(initialMedicine?.colorArgb ?: MedicinePalette.first()) }
     var secondaryColorArgb by remember { mutableStateOf(initialMedicine?.secondaryColorArgb) }
-    var secondaryColorAutomaticallyEnabled by remember { mutableStateOf(false) }
     var backgroundColorArgb by remember {
         mutableLongStateOf(initialMedicine?.backgroundColorArgb ?: DEFAULT_MEDICINE_BACKGROUND_ARGB)
     }
@@ -131,6 +135,10 @@ fun MedicineEditorScreen(
         CourseEndMode.WITHOUT_END -> null
         CourseEndMode.END_DATE -> LocalDate.ofEpochDay(endEpochDay)
         CourseEndMode.DAYS_COUNT -> days?.takeIf { it > 0 }?.let { startDate.plusDays(it - 1) }
+    }
+
+    LaunchedEffect(currentStep) {
+        editorScrollState.scrollTo(0)
     }
 
     fun isStepValid(step: Int): Boolean = when (step) {
@@ -196,8 +204,13 @@ fun MedicineEditorScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.background,
+                ),
                 title = {
                     Text(
                         text = if (initialMedicine == null) "Новое лекарство" else "Редактирование",
@@ -247,16 +260,20 @@ fun MedicineEditorScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .imePadding(),
             contentAlignment = Alignment.TopCenter,
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .widthIn(max = 680.dp)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp),
+                    .widthIn(max = 760.dp)
+                    .verticalScroll(editorScrollState)
+                    .padding(
+                        horizontal = AppSpacing.Screen,
+                        vertical = AppSpacing.Lg,
+                    ),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.Lg),
             ) {
                 StepHeader(currentStep)
                 when (currentStep) {
@@ -265,17 +282,10 @@ fun MedicineEditorScreen(
                         onNameChanged = { name = it },
                         form = form,
                         onFormChanged = {
-                            val previousForm = form
-                            val colorTransition = secondaryColorAfterFormChange(
-                                previousForm = previousForm,
+                            secondaryColorArgb = secondaryColorAfterFormChange(
                                 selectedForm = it,
                                 currentSecondaryColor = secondaryColorArgb,
-                                wasAutomaticallyEnabledForCapsule = secondaryColorAutomaticallyEnabled,
-                                defaultSecondaryColor = MedicinePalette[1],
                             )
-                            secondaryColorArgb = colorTransition.color
-                            secondaryColorAutomaticallyEnabled =
-                                colorTransition.automaticallyEnabledForCapsule
                             form = it
                             if (it == MedicineForm.TABLET && pillShape == PillShape.CAPSULE) {
                                 pillShape = PillShape.ROUND
@@ -286,10 +296,7 @@ fun MedicineEditorScreen(
                         colorArgb = colorArgb,
                         onColorChanged = { colorArgb = it },
                         secondaryColorArgb = secondaryColorArgb,
-                        onSecondaryColorChanged = {
-                            secondaryColorArgb = it
-                            secondaryColorAutomaticallyEnabled = false
-                        },
+                        onSecondaryColorChanged = { secondaryColorArgb = it },
                         backgroundColorArgb = backgroundColorArgb,
                         onBackgroundColorChanged = { backgroundColorArgb = it },
                         showError = showValidation,
@@ -349,7 +356,7 @@ fun MedicineEditorScreen(
                         endDate = calculatedEndDate,
                     )
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(AppSpacing.Xl))
             }
         }
     }

@@ -1,22 +1,12 @@
 package com.denisp.pillstracker.ui.feature.editor
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.DosageUnit
+import com.denisp.pillstracker.ui.theme.AppTextField
 
 @Composable
 internal fun DosageStep(
@@ -32,39 +22,57 @@ internal fun DosageStep(
     onRemainingChanged: (String) -> Unit,
     showError: Boolean,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        OutlinedTextField(
-            value = dosageAmount,
-            onValueChange = onDosageAmountChanged,
-            modifier = Modifier.weight(1f),
-            label = { Text("Дозировка") },
-            placeholder = { Text("Например, 60") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            singleLine = true,
-            isError = showError && (dosageAmount.replace(',', '.').toDoubleOrNull() ?: 0.0) <= 0,
-        )
-        SelectionField(
-            label = "Единица",
-            selected = dosageUnit,
-            options = DosageUnit.entries,
-            onSelected = onDosageUnitChanged,
-            title = DosageUnit::title,
-            modifier = Modifier.width(128.dp),
-        )
-    }
-    DecimalField(tabletsPerIntake, onTabletsChanged, "Таблеток за один приём", showError)
-    DecimalField(packageSize, onPackageChanged, "Таблеток в полной упаковке", showError)
-    DecimalField(remaining, onRemainingChanged, "Сейчас осталось", showError)
-    Card(shape = RoundedCornerShape(18.dp)) {
-        Text(
-            "Напоминание о покупке появится, когда останется не больше трёх приёмов.",
-            modifier = Modifier.padding(16.dp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    EditorStepContent {
+        EditorSectionCard(
+            title = "Дозировка",
+            supportingText = "Укажите количество лекарства за один приём",
+        ) {
+            DecimalField(
+                value = dosageAmount,
+                onValueChanged = onDosageAmountChanged,
+                label = "Дозировка",
+                placeholder = "Например, 60",
+                showError = showError,
+                allowZero = false,
+            )
+            SelectionField(
+                label = "Единица измерения",
+                selected = dosageUnit,
+                options = DosageUnit.entries,
+                onSelected = onDosageUnitChanged,
+                title = DosageUnit::title,
+            )
+            DecimalField(
+                value = tabletsPerIntake,
+                onValueChanged = onTabletsChanged,
+                label = "Таблеток за один приём",
+                showError = showError,
+                allowZero = false,
+            )
+        }
+
+        EditorSectionCard(
+            title = "Запас",
+            supportingText = "Поможем вовремя заметить, что лекарство заканчивается",
+        ) {
+            DecimalField(
+                value = packageSize,
+                onValueChanged = onPackageChanged,
+                label = "Таблеток в полной упаковке",
+                showError = showError,
+                allowZero = false,
+            )
+            DecimalField(
+                value = remaining,
+                onValueChanged = onRemainingChanged,
+                label = "Сейчас осталось",
+                showError = showError,
+                allowZero = true,
+            )
+            Text(
+                "Напоминание о покупке появится, когда останется не больше трёх приёмов.",
+            )
+        }
     }
 }
 
@@ -74,15 +82,32 @@ private fun DecimalField(
     onValueChanged: (String) -> Unit,
     label: String,
     showError: Boolean,
+    allowZero: Boolean,
+    modifier: Modifier = Modifier,
+    placeholder: String? = null,
 ) {
     val parsed = value.replace(',', '.').toDoubleOrNull()
-    OutlinedTextField(
+    val invalid = parsed == null || if (allowZero) parsed < 0 else parsed <= 0
+    AppTextField(
         value = value,
         onValueChange = onValueChanged,
-        modifier = Modifier.fillMaxWidth(),
-        label = { Text(label) },
+        label = label,
+        modifier = modifier,
+        placeholder = placeholder,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true,
-        isError = showError && (parsed == null || parsed < 0),
+        isError = showError && invalid,
+        supportingText = if (showError && invalid) {
+            {
+                Text(
+                    if (allowZero) {
+                        "Введите число не меньше нуля"
+                    } else {
+                        "Введите число больше нуля"
+                    },
+                )
+            }
+        } else {
+            null
+        },
     )
 }

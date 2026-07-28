@@ -199,6 +199,10 @@ fun AppTextField(
     singleLine: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
+    isError: Boolean = false,
+    supportingText: (@Composable () -> Unit)? = null,
+    minLines: Int = 1,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
 ) {
     OutlinedTextField(
         value = value,
@@ -214,6 +218,10 @@ fun AppTextField(
         singleLine = singleLine,
         keyboardOptions = keyboardOptions,
         visualTransformation = visualTransformation,
+        isError = isError,
+        supportingText = supportingText,
+        minLines = minLines,
+        maxLines = maxLines,
         shape = RoundedCornerShape(AppRadii.Control),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
