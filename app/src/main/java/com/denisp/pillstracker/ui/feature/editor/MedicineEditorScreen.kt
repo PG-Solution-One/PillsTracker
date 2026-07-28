@@ -117,7 +117,9 @@ fun MedicineEditorScreen(
         }
     }
     var mealTiming by remember { mutableStateOf(initialMedicine?.mealTiming ?: MealTiming.ANY) }
-    var note by remember { mutableStateOf(initialMedicine?.note.orEmpty()) }
+    var note by remember {
+        mutableStateOf(limitMedicineNote(initialMedicine?.note.orEmpty()))
+    }
 
     val dosage = dosageAmount.replace(',', '.').toDoubleOrNull()
     val tablets = tabletsPerIntake.replace(',', '.').toDoubleOrNull()
@@ -160,7 +162,7 @@ fun MedicineEditorScreen(
                 packageSize = pack ?: 0.0,
                 remaining = stock ?: 0.0,
                 mealTiming = mealTiming,
-                note = note.trim(),
+                note = limitMedicineNote(note.trim()),
                 startDate = startDate,
                 endDate = calculatedEndDate,
                 scheduleKind = scheduleKind,

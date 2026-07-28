@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.MealTiming
 import com.denisp.pillstracker.model.ScheduleKind
@@ -46,15 +47,24 @@ internal fun DetailsStep(
     )
     OutlinedTextField(
         value = note,
-        onValueChange = onNoteChanged,
+        onValueChange = { onNoteChanged(limitMedicineNote(it)) },
         modifier = Modifier
             .fillMaxWidth()
-            .height(130.dp),
+            .heightIn(min = 130.dp),
         label = { Text("Заметка") },
         placeholder = { Text("Например, запивать стаканом воды") },
         keyboardOptions = KeyboardOptions(
             capitalization = KeyboardCapitalization.Sentences,
         ),
+        minLines = 3,
+        maxLines = 4,
+        supportingText = {
+            Text(
+                text = "${medicineNoteLength(note)} / $MAX_MEDICINE_NOTE_LENGTH",
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.End,
+            )
+        },
     )
     Card(shape = RoundedCornerShape(20.dp)) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
