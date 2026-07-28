@@ -34,12 +34,38 @@ com.denisp.pillstracker
 └── ui
     ├── MainNavigation.kt
     ├── PillsTrackerApp.kt
+    ├── DateTimeFormats.kt
+    ├── MedicinePalette.kt
     ├── components
+    │   ├── AppDateTimePickerDialogs.kt
+    │   ├── MedicineAppearance.kt
+    │   ├── MedicineReminderOverlay.kt
+    │   └── SwipeableIntakeCard.kt
     ├── theme
+    │   ├── AppDesignTokens.kt
+    │   ├── AppDesignSystem.kt
+    │   └── PillsTrackerTheme.kt
     └── feature
         ├── editor
+        │   ├── MedicineEditorScreen.kt
+        │   ├── MedicineEditorModels.kt
+        │   ├── MedicineEditorRules.kt
+        │   ├── MedicineFormCarousel.kt
+        │   ├── MedicineFormCarouselState.kt
+        │   ├── MedicineColorPicker.kt
+        │   ├── EditorMedicineStep.kt
+        │   ├── EditorDosageStep.kt
+        │   ├── EditorScheduleSteps.kt
+        │   ├── EditorReviewStep.kt
+        │   ├── EditorFields.kt
+        │   └── EditorNavigation.kt
         ├── history
         ├── medicines
+        │   ├── MedicinesScreen.kt
+        │   ├── MedicineCatalogCard.kt
+        │   ├── MedicineActionsSheet.kt
+        │   ├── DeleteMedicineDialog.kt
+        │   └── RefillMedicineDialog.kt
         ├── onboarding
         ├── settings
         └── today
@@ -69,7 +95,7 @@ NotificationScheduler → TrackerRepository + Android Alarm/Notification API
   операции репозитория.
 - `ui/feature` содержит экраны и компоненты одной пользовательской функции.
 - `ui/components` содержит элементы, которые используются несколькими функциями.
-- `ui/theme` содержит тему и переиспользуемые элементы дизайн-системы.
+- `ui/theme` содержит тему, дизайн-токены и переиспользуемые элементы дизайн-системы.
 
 ## Устройство feature
 
@@ -83,11 +109,16 @@ NotificationScheduler → TrackerRepository + Android Alarm/Notification API
 - `today/TodayUiState.kt` — чистое построение состояния;
 - `today/TodayHeader.kt`, `TodayDashboard.kt`, `TodayMedicineCards.kt` — визуальные блоки;
 - `medicines/MedicinesScreen.kt` — состояние каталога и маршрутизация действий;
-- `medicines/MedicineCatalogCard.kt`, `MedicineActionsSheet.kt`, `RefillMedicineDialog.kt` —
-  карточка и модальные UI;
-- `editor/MedicineEditorModels.kt` — чистые модели и переходы временного состояния редактора;
+- `medicines/MedicineCatalogCard.kt`, `MedicineActionsSheet.kt`, `DeleteMedicineDialog.kt`,
+  `RefillMedicineDialog.kt` — карточка и отдельные модальные UI, построенные на общей
+  дизайн-системе;
+- `editor/MedicineEditorModels.kt` — временные модели состояния редактора;
+- `editor/MedicineEditorRules.kt` — ограничения заметки и переходы цвета без Compose;
+- `editor/MedicineFormCarouselState.kt` — чистая циклическая адресация страниц карусели;
 - `editor/EditorMedicineStep.kt`, `EditorDosageStep.kt`, `EditorScheduleSteps.kt` —
   визуальные шаги, разделённые по назначению;
+- `editor/MedicineFormCarousel.kt` и `MedicineColorPicker.kt` содержат карусель формы
+  и палитру отдельно от разметки шага редактора;
 - `editor/EditorFields.kt` — переиспользуемые поля внутри редактора;
 - `components/AppDateTimePickerDialogs.kt` — общий ручной и визуальный выбор даты и времени;
 - `settings/ThemeModeSelector.kt` — визуальный выбор темы без логики хранения настроек;
@@ -118,6 +149,8 @@ NotificationScheduler → TrackerRepository + Android Alarm/Notification API
   и `ViewModel`.
 - Инструментальные Compose-тесты находятся в `src/androidTest`, чистая логика —
   в `src/test`.
+- Релизным артефактом является подписанный APK. Ключ подписи, локальные свойства,
+  сертификаты, IDE-файлы и результаты сборки не хранятся в Git.
 
 ## Правила развития проекта
 

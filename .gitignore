@@ -1,5 +1,7 @@
 # Android Studio / IntelliJ IDEA
 .idea/
+.agents/
+.codegraph/
 *.iml
 out/
 
@@ -27,6 +29,13 @@ tmp/
 keystore/
 *.jks
 *.keystore
+*.p12
+*.pfx
+*.pem
+*.cer
+*.crt
+*.der
+pepk*.zip
 key.properties
 keystore.properties
 signing.properties
