@@ -27,13 +27,14 @@ import java.time.ZoneId
 internal fun MedicineCatalogCard(
     medicine: Medicine,
     onOpen: () -> Unit,
+    onLongPress: () -> Unit,
 ) {
     AppSurfaceCard(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
                 onClick = onOpen,
-                onLongClick = onOpen,
+                onLongClick = onLongPress,
             ),
         elevated = true,
     ) {
@@ -62,17 +63,19 @@ internal fun MedicineCatalogCard(
                 }
             }
             Text(medicineScheduleSummary(medicine), style = MaterialTheme.typography.bodyMedium)
+            if (medicine.trackStock) {
+                Text(
+                    text = "Осталось ${medicine.remaining.displayAmount()} из " +
+                        "${medicine.packageSize.displayAmount()} шт.",
+                    color = if (medicine.remaining <= medicine.tabletsPerIntake * 3) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
             Text(
-                text = "Осталось ${medicine.remaining.displayAmount()} из " +
-                    "${medicine.packageSize.displayAmount()} шт.",
-                color = if (medicine.remaining <= medicine.tabletsPerIntake * 3) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-            )
-            Text(
-                text = "Нажмите или удерживайте для действий",
+                text = "Нажмите, чтобы открыть · удерживайте для действий",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
             )

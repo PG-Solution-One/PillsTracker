@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -39,16 +40,34 @@ fun MedicineAppearance(
     medicine: Medicine,
     modifier: Modifier = Modifier,
     size: Dp = 28.dp,
+    showContainer: Boolean = true,
 ) {
-    MedicineFormSticker(
-        form = medicine.form,
-        shape = medicine.pillShape,
-        primaryColorArgb = medicine.colorArgb,
-        secondaryColorArgb = medicine.secondaryColorArgb,
-        modifier = modifier,
-        size = size,
-        backgroundColorArgb = medicine.backgroundColorArgb,
-    )
+    if (showContainer) {
+        MedicineFormSticker(
+            form = medicine.form,
+            shape = medicine.pillShape,
+            primaryColorArgb = medicine.colorArgb,
+            secondaryColorArgb = medicine.secondaryColorArgb,
+            modifier = modifier,
+            size = size,
+            backgroundColorArgb = medicine.backgroundColorArgb,
+        )
+    } else {
+        MedicineFormImage(
+            drawableRes = medicineFormDrawable(medicine.form, medicine.pillShape),
+            contentDescription = medicine.form.title,
+            primary = Color(medicine.colorArgb.toInt()),
+            secondary = medicine.secondaryColorArgb
+                ?.takeIf {
+                    medicine.form == MedicineForm.TABLET ||
+                        medicine.form == MedicineForm.CAPSULE
+                }
+                ?.let { Color(it.toInt()) },
+            size = size * medicineBareIconScale(medicine.form),
+            rotationDegrees = medicineIconRotation(medicine.form, medicine.pillShape),
+            modifier = modifier,
+        )
+    }
 }
 
 @Composable
@@ -118,6 +137,7 @@ fun MedicineFormSticker(
             primary = primary,
             secondary = secondary.takeIf { usesTwoColors },
             size = size * medicineIconScale(form),
+            rotationDegrees = medicineIconRotation(form, shape),
         )
     }
 }
@@ -129,6 +149,8 @@ private fun MedicineFormImage(
     primary: Color,
     secondary: Color?,
     size: Dp,
+    rotationDegrees: Float,
+    modifier: Modifier = Modifier,
 ) {
     val painter = painterResource(drawableRes)
     val primaryFilter = ColorFilter.tint(primary, BlendMode.Modulate)
@@ -136,8 +158,9 @@ private fun MedicineFormImage(
     val intrinsicSize = painter.intrinsicSize
 
     Canvas(
-        modifier = Modifier
+        modifier = modifier
             .size(size)
+            .graphicsLayer(rotationZ = rotationDegrees)
             .semantics { this.contentDescription = contentDescription },
     ) {
         val sourceWidth = intrinsicSize.width.takeIf { it.isFinite() && it > 0f } ?: this.size.width
@@ -151,6 +174,16 @@ private fun MedicineFormImage(
 
         translate(left = offset.x, top = offset.y) {
             with(painter) {
+                translate(
+                    left = renderedSize.width * 0.035f,
+                    top = renderedSize.height * 0.055f,
+                ) {
+                    draw(
+                        size = renderedSize,
+                        alpha = 0.28f,
+                        colorFilter = ColorFilter.tint(Color.Black, BlendMode.SrcIn),
+                    )
+                }
                 if (secondaryFilter == null) {
                     draw(size = renderedSize, colorFilter = primaryFilter)
                 } else {
@@ -202,11 +235,42 @@ private fun medicineFormDrawable(
 private fun medicineIconScale(form: MedicineForm): Float = when (form) {
     MedicineForm.INJECTION,
     MedicineForm.OINTMENT,
-    -> 0.70f
+    -> 0.64f
 
     MedicineForm.TABLET,
     MedicineForm.CAPSULE,
-    -> 0.62f
+    -> 0.60f
 
     else -> 0.66f
+}
+
+private fun medicineBareIconScale(form: MedicineForm): Float = when (form) {
+    MedicineForm.INJECTION,
+    MedicineForm.OINTMENT,
+    -> 0.80f
+
+    MedicineForm.TABLET,
+    MedicineForm.CAPSULE,
+    -> 0.86f
+
+    else -> 0.84f
+}
+
+private fun medicineIconRotation(form: MedicineForm, shape: PillShape): Float = when (form) {
+    MedicineForm.TABLET -> when (shape) {
+        PillShape.ROUND -> -8f
+        PillShape.OVAL -> -14f
+        PillShape.CAPSULE -> -24f
+        PillShape.OBLONG -> -18f
+    }
+
+    MedicineForm.CAPSULE -> -24f
+    MedicineForm.POWDER -> -6f
+    MedicineForm.INJECTION -> -15f
+    MedicineForm.DROPS -> 8f
+    MedicineForm.SYRUP -> -7f
+    MedicineForm.SPRAY -> -12f
+    MedicineForm.OINTMENT -> -14f
+    MedicineForm.SUPPOSITORY -> 12f
+    MedicineForm.OTHER -> -6f
 }

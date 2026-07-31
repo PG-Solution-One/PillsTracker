@@ -17,24 +17,33 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.denisp.pillstracker.data.TrackerRepository
-import com.denisp.pillstracker.domain.IntakeRules
 import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.ThemeMode
 import com.denisp.pillstracker.model.UserProfile
 import com.denisp.pillstracker.notifications.NotificationScheduler
 import com.denisp.pillstracker.ui.components.MedicineReminderOverlay
+import com.denisp.pillstracker.ui.components.updateIntakeGroupStatus
+import com.denisp.pillstracker.ui.components.updateIntakeStatus
 import com.denisp.pillstracker.ui.feature.editor.MedicineEditorScreen
 import com.denisp.pillstracker.ui.feature.history.HistoryScreen
+import com.denisp.pillstracker.ui.feature.medicines.MedicineDetailsScreen
 import com.denisp.pillstracker.ui.feature.medicines.MedicinesScreen
 import com.denisp.pillstracker.ui.feature.onboarding.OnboardingScreen
 import com.denisp.pillstracker.ui.feature.settings.SettingsScreen
 import com.denisp.pillstracker.ui.feature.today.TodayScreen
+import java.time.LocalDate
+
+private sealed interface AppDestination {
+    data class Section(val section: MainSection) : AppDestination
+    data class MedicineDetails(val medicineId: Long) : AppDestination
+    data object MedicineEditor : AppDestination
+}
 
 @Composable
 fun PillsTrackerApp(
@@ -48,24 +57,42 @@ fun PillsTrackerApp(
     onUserProfileChanged: (UserProfile) -> Unit,
 ) {
     val snapshot by repository.snapshot.collectAsStateWithLifecycle()
-    var section by remember { mutableStateOf(MainSection.TODAY) }
-    val sectionHistory = remember { mutableStateListOf<MainSection>() }
-    var medicineToOpenId by remember { mutableStateOf<Long?>(null) }
+    val navigationStack = remember {
+        mutableStateListOf<AppDestination>(
+            AppDestination.Section(MainSection.TODAY),
+        )
+    }
+    val destination = navigationStack.last()
     var editedMedicine by remember { mutableStateOf<Medicine?>(null) }
-    var editorOpen by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     val reminderQueue = remember { mutableStateListOf<Long>() }
-    val showMedicines: (Long?) -> Unit = { medicineId ->
-        if (section != MainSection.MEDICINES) {
-            sectionHistory.add(section)
+    val navigate: (AppDestination) -> Unit = { target ->
+        if (navigationStack.lastOrNull() != target) {
+            navigationStack.add(target)
         }
-        medicineToOpenId = medicineId
-        section = MainSection.MEDICINES
     }
-    val enqueueReminder: (Long) -> Unit = { scheduledAt ->
-        if (scheduledAt >= 0 && scheduledAt !in reminderQueue) {
-            reminderQueue.add(scheduledAt)
-            reminderQueue.sort()
+    val navigateBack: () -> Unit = {
+        if (navigationStack.size > 1) {
+            navigationStack.removeAt(navigationStack.lastIndex)
+        }
+    }
+    val showMedicines: (Long?) -> Unit = { medicineId ->
+        if (medicineId == null) {
+            navigate(AppDestination.Section(MainSection.MEDICINES))
+        } else {
+            navigate(AppDestination.MedicineDetails(medicineId))
+        }
+    }
+
+    val enqueueReminder: (Long, Boolean) -> Unit = { scheduledAt, prioritize ->
+        if (scheduledAt >= 0) {
+            reminderQueue.remove(scheduledAt)
+            if (prioritize) {
+                reminderQueue.add(0, scheduledAt)
+            } else {
+                reminderQueue.add(scheduledAt)
+                reminderQueue.sort()
+            }
         }
     }
     val finishReminder: (Long) -> Unit = { scheduledAt ->
@@ -75,36 +102,52 @@ fun PillsTrackerApp(
 
     LaunchedEffect(scheduler, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            scheduler.doseReminderEvents.collect { event ->
-                enqueueReminder(event.scheduledAt)
+            scheduler.activeReminderTimestamps().forEach {
+                enqueueReminder(it, false)
+            }
+            scheduler.reminderEvents.collect {
+                enqueueReminder(it, false)
             }
         }
     }
     LaunchedEffect(openedScheduledAt) {
-        openedScheduledAt?.let(enqueueReminder)
+        openedScheduledAt?.let {
+            enqueueReminder(it, true)
+        }
     }
 
     val reminderScheduledAt = reminderQueue.firstOrNull()
     val reminderDoses = reminderScheduledAt
         ?.let(repository::dosesAt)
         .orEmpty()
-        .filter { it.status == IntakeStatus.PENDING }
+    val pendingReminderDoses = reminderDoses.filter { it.status == IntakeStatus.PENDING }
 
     LaunchedEffect(
         reminderScheduledAt,
-        reminderDoses.map { "${it.medicine.id}:${it.status}" },
+        pendingReminderDoses.map { "${it.medicine.id}:${it.status}" },
     ) {
-        if (reminderScheduledAt != null && reminderDoses.isEmpty()) {
+        if (reminderScheduledAt != null && pendingReminderDoses.isEmpty()) {
             finishReminder(reminderScheduledAt)
         }
     }
 
+    val detailsDestination = destination as? AppDestination.MedicineDetails
+    val openedMedicine = detailsDestination?.let { details ->
+        snapshot.medicines.firstOrNull { it.id == details.medicineId }
+    }
+
+    LaunchedEffect(detailsDestination, openedMedicine) {
+        if (detailsDestination != null && openedMedicine == null) {
+            navigateBack()
+        }
+    }
+
     BackHandler(
-        enabled = !editorOpen &&
+        enabled =
             (userProfile.onboardingCompleted || snapshot.medicines.isNotEmpty()) &&
-            sectionHistory.isNotEmpty(),
+                navigationStack.size > 1,
     ) {
-        section = sectionHistory.removeAt(sectionHistory.lastIndex)
+        navigateBack()
     }
 
     Box(
@@ -120,19 +163,38 @@ fun PillsTrackerApp(
                 )
             }
 
-            editorOpen -> {
+            destination == AppDestination.MedicineEditor -> {
                 MedicineEditorScreen(
                     initialMedicine = editedMedicine,
-                    onBack = { editorOpen = false },
+                    onBack = navigateBack,
                     onSave = { medicine ->
                         repository.saveMedicine(medicine)
+                        if (!medicine.trackStock && medicine.id != 0L) {
+                            scheduler.dismissStockNotification(medicine.id)
+                        }
                         scheduler.rescheduleAll()
-                        editorOpen = false
+                        navigateBack()
                     },
                 )
             }
 
-            else -> {
+            destination is AppDestination.MedicineDetails && openedMedicine != null -> {
+                MedicineDetailsScreen(
+                    medicine = openedMedicine,
+                    todayDoses = repository.dosesForDate(
+                        date = LocalDate.now(),
+                        activeOnly = false,
+                    ).filter { it.medicine.id == openedMedicine.id },
+                    onBack = navigateBack,
+                    onEdit = {
+                        editedMedicine = openedMedicine
+                        navigate(AppDestination.MedicineEditor)
+                    },
+                )
+            }
+
+            destination is AppDestination.Section -> {
+                val section = destination.section
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     containerColor = MaterialTheme.colorScheme.background,
@@ -141,8 +203,7 @@ fun PillsTrackerApp(
                             selectedSection = section,
                             onSectionSelected = { item ->
                                 if (section != item) {
-                                    sectionHistory.add(section)
-                                    section = item
+                                    navigate(AppDestination.Section(item))
                                 }
                             },
                         )
@@ -155,7 +216,7 @@ fun PillsTrackerApp(
                             FloatingActionButton(
                                 onClick = {
                                     editedMedicine = null
-                                    editorOpen = true
+                                    navigate(AppDestination.MedicineEditor)
                                 },
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -180,11 +241,12 @@ fun PillsTrackerApp(
                                 snapshot = snapshot,
                                 repository = repository,
                                 scheduler = scheduler,
-                                medicineToOpenId = medicineToOpenId,
-                                onMedicineOpened = { medicineToOpenId = null },
+                                onOpenDetails = {
+                                    navigate(AppDestination.MedicineDetails(it.id))
+                                },
                                 onEdit = {
                                     editedMedicine = it
-                                    editorOpen = true
+                                    navigate(AppDestination.MedicineEditor)
                                 },
                                 onChanged = scheduler::rescheduleAll,
                             )
@@ -205,23 +267,31 @@ fun PillsTrackerApp(
                     }
                 }
             }
+
+            else -> Unit
         }
 
         if (reminderScheduledAt != null && reminderDoses.isNotEmpty()) {
             MedicineReminderOverlay(
                 doses = reminderDoses,
-                takeEnabled = reminderDoses.all { dose ->
-                    IntakeRules.canMarkTaken(
-                        remaining = dose.medicine.remaining,
-                        tabletsPerIntake = dose.medicine.tabletsPerIntake,
-                        currentStatus = dose.status,
-                    )
+                onStatus = { dose, status ->
+                    updateIntakeStatus(repository, scheduler, dose, status)
+                    if (repository.dosesAt(reminderScheduledAt).any {
+                            it.status == IntakeStatus.PENDING
+                        }
+                    ) {
+                        scheduler.showDoseNotification(reminderScheduledAt)
+                    } else {
+                        finishReminder(reminderScheduledAt)
+                    }
                 },
                 onTakeAll = {
-                    repository.markAll(reminderScheduledAt, IntakeStatus.TAKEN)
-                    scheduler.cancelFollowUps(reminderScheduledAt)
-                    scheduler.dismissDoseNotification(reminderScheduledAt)
-                    scheduler.showLowStockNotifications(repository.snapshot.value.medicines)
+                    updateIntakeGroupStatus(
+                        repository = repository,
+                        scheduler = scheduler,
+                        scheduledAt = reminderScheduledAt,
+                        status = IntakeStatus.TAKEN,
+                    )
                     finishReminder(reminderScheduledAt)
                 },
                 onSnooze = {

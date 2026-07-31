@@ -31,6 +31,7 @@ fun IntakeStatusControls(
     status: IntakeStatus,
     enabled: Boolean = true,
     takenEnabled: Boolean = enabled,
+    subjectName: String? = null,
     onStatus: (IntakeStatus) -> Unit,
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -39,11 +40,14 @@ fun IntakeStatusControls(
                 enabled = takenEnabled,
                 selectedContainerColor = AppStatusColors.Taken,
                 selectedContentColor = Color.White,
-                contentDescription = if (status == IntakeStatus.TAKEN) {
-                    "Вернуть в ожидающие"
-                } else {
-                    "Отметить как принято"
-                },
+                contentDescription = statusActionDescription(
+                    action = if (status == IntakeStatus.TAKEN) {
+                        "Вернуть в ожидающие"
+                    } else {
+                        "Отметить как принято"
+                    },
+                    subjectName = subjectName,
+                ),
                 onClick = {
                     onStatus(
                         if (status == IntakeStatus.TAKEN) IntakeStatus.PENDING else IntakeStatus.TAKEN,
@@ -57,11 +61,14 @@ fun IntakeStatusControls(
                 enabled = enabled,
                 selectedContainerColor = AppStatusColors.Skipped,
                 selectedContentColor = Color.White,
-                contentDescription = if (status == IntakeStatus.SKIPPED) {
-                    "Вернуть в ожидающие"
-                } else {
-                    "Отметить как пропущено"
-                },
+                contentDescription = statusActionDescription(
+                    action = if (status == IntakeStatus.SKIPPED) {
+                        "Вернуть в ожидающие"
+                    } else {
+                        "Отметить как пропущено"
+                    },
+                    subjectName = subjectName,
+                ),
                 onClick = {
                     onStatus(
                         if (status == IntakeStatus.SKIPPED) IntakeStatus.PENDING else IntakeStatus.SKIPPED,
@@ -72,6 +79,9 @@ fun IntakeStatusControls(
             }
     }
 }
+
+private fun statusActionDescription(action: String, subjectName: String?): String =
+    subjectName?.let { "$action: $it" } ?: action
 
 @Composable
 private fun StatusIconButton(

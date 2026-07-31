@@ -11,10 +11,27 @@ internal data class TodayUiState(
     val activeMedicines: List<Medicine>,
     val asNeededMedicines: List<Medicine>,
     val lowStockMedicines: List<Medicine>,
+    val doseGroups: List<TodayDoseGroup>,
     val nextDose: ScheduledDose?,
     val takenToday: Int,
     val totalToday: Int,
 )
+
+internal data class TodayDoseGroup(
+    val scheduledAt: Long,
+    val doses: List<ScheduledDose>,
+)
+
+internal fun groupTodayDoses(doses: List<ScheduledDose>): List<TodayDoseGroup> =
+    doses
+        .sortedBy { it.scheduledAt }
+        .groupBy { it.scheduledAt }
+        .map { (scheduledAt, groupedDoses) ->
+            TodayDoseGroup(
+                scheduledAt = scheduledAt,
+                doses = groupedDoses,
+            )
+        }
 
 internal fun buildTodayUiState(
     snapshot: TrackerSnapshot,
@@ -32,8 +49,9 @@ internal fun buildTodayUiState(
             it.scheduleKind == ScheduleKind.AS_NEEDED
         },
         lowStockMedicines = activeMedicines.filter {
-            it.remaining <= it.tabletsPerIntake * 3
+            it.trackStock && it.remaining <= it.tabletsPerIntake * 3
         },
+        doseGroups = groupTodayDoses(doses),
         nextDose = nextDose,
         takenToday = doses.count { it.status == IntakeStatus.TAKEN },
         totalToday = doses.size,

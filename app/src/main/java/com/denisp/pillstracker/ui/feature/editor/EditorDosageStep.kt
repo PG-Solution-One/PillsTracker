@@ -1,9 +1,16 @@
 package com.denisp.pillstracker.ui.feature.editor
 
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import com.denisp.pillstracker.model.DosageUnit
 import com.denisp.pillstracker.ui.theme.AppTextField
@@ -20,6 +27,8 @@ internal fun DosageStep(
     onPackageChanged: (String) -> Unit,
     remaining: String,
     onRemainingChanged: (String) -> Unit,
+    trackStock: Boolean,
+    onTrackStockChanged: (Boolean) -> Unit,
     showError: Boolean,
 ) {
     EditorStepContent {
@@ -55,23 +64,40 @@ internal fun DosageStep(
             title = "Запас",
             supportingText = "Поможем вовремя заметить, что лекарство заканчивается",
         ) {
-            DecimalField(
-                value = packageSize,
-                onValueChanged = onPackageChanged,
-                label = "Таблеток в полной упаковке",
-                showError = showError,
-                allowZero = false,
-            )
-            DecimalField(
-                value = remaining,
-                onValueChanged = onRemainingChanged,
-                label = "Сейчас осталось",
-                showError = showError,
-                allowZero = true,
-            )
-            Text(
-                "Напоминание о покупке появится, когда останется не больше трёх приёмов.",
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Следить за запасом",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Switch(
+                    checked = trackStock,
+                    onCheckedChange = onTrackStockChanged,
+                )
+            }
+            if (trackStock) {
+                DecimalField(
+                    value = packageSize,
+                    onValueChanged = onPackageChanged,
+                    label = "Таблеток в полной упаковке",
+                    showError = showError,
+                    allowZero = false,
+                )
+                DecimalField(
+                    value = remaining,
+                    onValueChanged = onRemainingChanged,
+                    label = "Сейчас осталось",
+                    showError = showError,
+                    allowZero = true,
+                )
+                Text(
+                    "Напоминание о покупке появится, когда останется не больше трёх приёмов.",
+                )
+            }
         }
     }
 }

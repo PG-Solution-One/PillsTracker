@@ -25,8 +25,9 @@ com.denisp.pillstracker
 │       ├── ThemePreferences.kt
 │       └── TrackerDatabase.kt
 ├── notifications
-│   ├── DoseReminderEvent.kt
 │   ├── NotificationScheduler.kt
+│   ├── ReminderPolicy.kt
+│   ├── ReminderStateStore.kt
 │   └── receiver
 │       ├── AlarmReceiver.kt
 │       ├── BootReceiver.kt
@@ -38,8 +39,10 @@ com.denisp.pillstracker
     ├── MedicinePalette.kt
     ├── components
     │   ├── AppDateTimePickerDialogs.kt
+    │   ├── GroupedIntakeCard.kt
     │   ├── MedicineAppearance.kt
     │   ├── MedicineReminderOverlay.kt
+    │   ├── ScheduledTimeBadge.kt
     │   └── SwipeableIntakeCard.kt
     ├── theme
     │   ├── AppDesignTokens.kt
@@ -63,6 +66,7 @@ com.denisp.pillstracker
         ├── medicines
         │   ├── MedicinesScreen.kt
         │   ├── MedicineCatalogCard.kt
+        │   ├── MedicineDetailsScreen.kt
         │   ├── MedicineActionsSheet.kt
         │   ├── DeleteMedicineDialog.kt
         │   └── RefillMedicineDialog.kt
@@ -131,9 +135,11 @@ NotificationScheduler → TrackerRepository + Android Alarm/Notification API
 
 - Долгоживущие данные лекарств и приёмов принадлежат `TrackerRepository`.
 - Пользовательские настройки принадлежат соответствующим `Preferences`.
-- Временное состояние выбора вкладки, фильтра или диалога принадлежит ближайшему экрану.
-- Запрос открыть конкретное лекарство передаётся между feature по идентификатору через
-  корневой координатор и потребляется экраном каталога один раз.
+- Полноэкранные переходы хранятся единым стеком в корневом координаторе, поэтому
+  системный жест и кнопка «Назад» возвращают на непосредственный предыдущий экран.
+- Временное состояние фильтра или диалога принадлежит ближайшему экрану.
+- Запрос открыть конкретное лекарство передаётся через корневой координатор по
+  идентификатору и создаёт отдельный экран сведений поверх текущего источника.
 - Расчёты, не требующие Android API или Compose, оформляются обычными функциями и
   покрываются локальными unit-тестами.
 - Composable-компоненты получают готовые значения и колбэки; они не обращаются к базе

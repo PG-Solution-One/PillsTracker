@@ -33,4 +33,19 @@ class MedicinePaletteTest {
             MedicinePalette,
         )
     }
+
+    @Test
+    fun `background palette contains distinct opaque pastel colors`() {
+        assertEquals(12, MedicineBackgroundPalette.size)
+        assertEquals(MedicineBackgroundPalette.size, MedicineBackgroundPalette.distinct().size)
+        MedicineBackgroundPalette.forEach { color ->
+            assertEquals(0xFF, color ushr 24)
+            val red = color shr 16 and 0xFF
+            val green = color shr 8 and 0xFF
+            val blue = color and 0xFF
+            assertTrue(red >= 0xB0)
+            assertTrue(green >= 0xB0)
+            assertTrue(blue >= 0x90)
+        }
+    }
 }

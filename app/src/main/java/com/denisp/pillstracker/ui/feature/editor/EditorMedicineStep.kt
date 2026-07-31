@@ -86,7 +86,7 @@ internal fun BasicMedicineStep(
 
         EditorSectionCard(
             title = "Оформление",
-            supportingText = "Цвета сразу отображаются в карусели",
+            supportingText = "Цвет лекарства и фон карточки сразу видны в карусели",
         ) {
             if (form == MedicineForm.TABLET || form == MedicineForm.CAPSULE) {
                 Row(
@@ -135,7 +135,7 @@ internal fun BasicMedicineStep(
                 )
             }
             MedicineColorPicker(
-                title = "Фон стикера",
+                title = "Фон карточки",
                 selectedColor = backgroundColorArgb,
                 onColorChanged = onBackgroundColorChanged,
                 colors = MedicineBackgroundPalette,

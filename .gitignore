@@ -24,6 +24,7 @@ captures/
 *.log
 *.tmp
 tmp/
+/app/release-assets/
 
 # Signing keys and local secrets
 keystore/

@@ -22,3 +22,22 @@ fun updateIntakeStatus(
         scheduler.dismissDoseNotification(dose.scheduledAt)
     }
 }
+
+fun updateIntakeGroupStatus(
+    repository: TrackerRepository,
+    scheduler: NotificationScheduler,
+    scheduledAt: Long,
+    status: IntakeStatus,
+) {
+    val changedMedicines = repository.markAll(scheduledAt, status)
+    if (status == IntakeStatus.TAKEN && changedMedicines.isNotEmpty()) {
+        val changedIds = changedMedicines.map { it.id }.toSet()
+        scheduler.showLowStockNotifications(
+            repository.snapshot.value.medicines.filter { it.id in changedIds },
+        )
+    }
+    if (repository.dosesAt(scheduledAt).none { it.status == IntakeStatus.PENDING }) {
+        scheduler.cancelFollowUps(scheduledAt)
+        scheduler.dismissDoseNotification(scheduledAt)
+    }
+}

@@ -17,6 +17,6 @@ class PillsTrackerApplication : Application() {
         repository = TrackerRepository(TrackerDatabase(this))
         notificationScheduler = NotificationScheduler(this, repository)
         notificationScheduler.createChannels()
-        notificationScheduler.rescheduleAll()
+        notificationScheduler.rescheduleAll(resetExisting = false)
     }
 }

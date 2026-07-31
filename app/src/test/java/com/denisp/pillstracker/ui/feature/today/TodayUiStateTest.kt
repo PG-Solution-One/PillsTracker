@@ -33,6 +33,7 @@ class TodayUiStateTest {
         assertEquals(listOf(regular, asNeeded), state.activeMedicines)
         assertEquals(listOf(asNeeded), state.asNeededMedicines)
         assertEquals(listOf(regular), state.lowStockMedicines)
+        assertEquals(listOf(100L, 200L), state.doseGroups.map { it.scheduledAt })
         assertEquals(200L, state.nextDose?.scheduledAt)
         assertEquals(1, state.takenToday)
         assertEquals(2, state.totalToday)
@@ -56,9 +57,51 @@ class TodayUiStateTest {
         assertEquals(overdue, state.nextDose)
     }
 
+    @Test
+    fun `medicine without stock tracking is excluded from low stock list`() {
+        val untracked = medicine(id = 1, remaining = 0.0, trackStock = false)
+
+        val state = buildTodayUiState(
+            snapshot = TrackerSnapshot(listOf(untracked)),
+            doses = emptyList(),
+            nowMillis = 100,
+        )
+
+        assertEquals(emptyList<Medicine>(), state.lowStockMedicines)
+    }
+
+    @Test
+    fun `doses with the same time are grouped without changing dose order`() {
+        val firstMedicine = medicine(id = 1)
+        val secondMedicine = medicine(id = 2)
+        val laterMedicine = medicine(id = 3)
+        val firstDose = ScheduledDose(
+            medicine = firstMedicine,
+            scheduledAt = 100,
+            status = IntakeStatus.PENDING,
+        )
+        val secondDose = ScheduledDose(
+            medicine = secondMedicine,
+            scheduledAt = 100,
+            status = IntakeStatus.TAKEN,
+        )
+        val laterDose = ScheduledDose(
+            medicine = laterMedicine,
+            scheduledAt = 200,
+            status = IntakeStatus.PENDING,
+        )
+
+        val groups = groupTodayDoses(listOf(laterDose, firstDose, secondDose))
+
+        assertEquals(listOf(100L, 200L), groups.map { it.scheduledAt })
+        assertEquals(listOf(firstDose, secondDose), groups.first().doses)
+        assertEquals(listOf(laterDose), groups.last().doses)
+    }
+
     private fun medicine(
         id: Long,
         remaining: Double = 30.0,
+        trackStock: Boolean = true,
         state: MedicineState = MedicineState.ACTIVE,
         scheduleKind: ScheduleKind = ScheduleKind.DAILY,
     ) = Medicine(
@@ -71,6 +114,7 @@ class TodayUiStateTest {
         tabletsPerIntake = 1.0,
         packageSize = 30.0,
         remaining = remaining,
+        trackStock = trackStock,
         mealTiming = MealTiming.ANY,
         note = "",
         startDate = LocalDate.of(2026, 7, 20),

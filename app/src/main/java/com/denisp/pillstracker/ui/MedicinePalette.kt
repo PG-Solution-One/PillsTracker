@@ -16,14 +16,16 @@ val MedicinePalette = listOf(
 )
 
 val MedicineBackgroundPalette = listOf(
-    0xFFDDF4E7,
-    0xFFDCEBFA,
-    0xFFE8E1F8,
-    0xFFF8DEE8,
-    0xFFFBE4D5,
-    0xFFF9F1C7,
-    0xFFE1EAD8,
-    0xFFD9F0EF,
-    0xFFEDE0F3,
-    0xFFF7D9D3,
+    0xFFC9E3F7,
+    0xFFBFE8D2,
+    0xFFD8C9F2,
+    0xFFF4C8D8,
+    0xFFF6CEB5,
+    0xFFF3E3A4,
+    0xFFCFE0B6,
+    0xFFBDE3E1,
+    0xFFC9D2F2,
+    0xFFE3C8BC,
+    0xFFD8DDE6,
+    0xFFF1C6BE,
 )

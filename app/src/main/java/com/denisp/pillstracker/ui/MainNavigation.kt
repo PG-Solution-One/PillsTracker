@@ -1,22 +1,28 @@
 package com.denisp.pillstracker.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.denisp.pillstracker.R
 
 internal enum class MainSection(val title: String) {
     TODAY("Главная"),
@@ -40,13 +46,7 @@ internal fun MainNavigationBar(
                 onClick = { onSectionSelected(item) },
                 icon = {
                     when (item) {
-                        MainSection.MEDICINES -> Icon(
-                            painter = painterResource(R.drawable.medicine_form_capsule),
-                            contentDescription = item.title,
-                            modifier = Modifier
-                                .size(27.dp)
-                                .rotate(-32f),
-                        )
+                        MainSection.MEDICINES -> MedicineNavigationIcon(item.title)
 
                         MainSection.TODAY -> MainSectionIcon(
                             imageVector = Icons.Rounded.Home,
@@ -67,6 +67,37 @@ internal fun MainNavigationBar(
                 label = { Text(item.title) },
             )
         }
+    }
+}
+
+@Composable
+private fun MedicineNavigationIcon(contentDescription: String) {
+    val color = LocalContentColor.current
+    Canvas(
+        modifier = Modifier
+            .size(28.dp)
+            .rotate(-32f)
+            .semantics { this.contentDescription = contentDescription },
+    ) {
+        val strokeWidth = 2.2.dp.toPx()
+        val capsuleWidth = 25.dp.toPx()
+        val capsuleHeight = 13.dp.toPx()
+        val left = (size.width - capsuleWidth) / 2f
+        val top = (size.height - capsuleHeight) / 2f
+
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(left, top),
+            size = Size(capsuleWidth, capsuleHeight),
+            cornerRadius = CornerRadius(capsuleHeight / 2f),
+            style = Stroke(width = strokeWidth),
+        )
+        drawLine(
+            color = color,
+            start = Offset(size.width / 2f, top + strokeWidth / 2f),
+            end = Offset(size.width / 2f, top + capsuleHeight - strokeWidth / 2f),
+            strokeWidth = strokeWidth,
+        )
     }
 }
 

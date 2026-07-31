@@ -89,6 +89,7 @@ fun MedicineEditorScreen(
     }
     var packageSize by remember { mutableStateOf(initialMedicine?.packageSize?.displayAmount().orEmpty()) }
     var remaining by remember { mutableStateOf(initialMedicine?.remaining?.displayAmount().orEmpty()) }
+    var trackStock by remember { mutableStateOf(initialMedicine?.trackStock ?: false) }
     var startEpochDay by remember {
         mutableLongStateOf((initialMedicine?.startDate ?: LocalDate.now()).toEpochDay())
     }
@@ -144,7 +145,10 @@ fun MedicineEditorScreen(
     fun isStepValid(step: Int): Boolean = when (step) {
         0 -> name.isNotBlank()
         1 -> dosage != null && dosage > 0 && tablets != null && tablets > 0 &&
-            pack != null && pack > 0 && stock != null && stock >= 0
+            (
+                !trackStock ||
+                    pack != null && pack > 0 && stock != null && stock >= 0
+                )
         2 -> calculatedEndDate?.isBefore(startDate) != true &&
             (courseEndMode != CourseEndMode.DAYS_COUNT || days != null && days > 0)
         3 -> scheduleKind == ScheduleKind.AS_NEEDED ||
@@ -167,8 +171,9 @@ fun MedicineEditorScreen(
                 dosageAmount = dosage ?: 0.0,
                 dosageUnit = dosageUnit,
                 tabletsPerIntake = tablets ?: 1.0,
-                packageSize = pack ?: 0.0,
-                remaining = stock ?: 0.0,
+                packageSize = pack ?: initialMedicine?.packageSize ?: 0.0,
+                remaining = stock ?: initialMedicine?.remaining ?: 0.0,
+                trackStock = trackStock,
                 mealTiming = mealTiming,
                 note = limitMedicineNote(note.trim()),
                 startDate = startDate,
@@ -315,6 +320,8 @@ fun MedicineEditorScreen(
                         },
                         remaining = remaining,
                         onRemainingChanged = { remaining = it },
+                        trackStock = trackStock,
+                        onTrackStockChanged = { trackStock = it },
                         showError = showValidation,
                     )
                     2 -> CourseStep(

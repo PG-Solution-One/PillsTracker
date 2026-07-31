@@ -23,22 +23,24 @@ import com.denisp.pillstracker.model.displayAmount
 import com.denisp.pillstracker.notifications.receiver.AlarmReceiver
 import com.denisp.pillstracker.notifications.receiver.NotificationActionReceiver
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import java.util.Locale
 
 class NotificationScheduler(
     private val context: Context,
     private val repository: TrackerRepository,
 ) {
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
-    private val _doseReminderEvents = MutableSharedFlow<DoseReminderEvent>(
+    private val stateStore = ReminderStateStore(context)
+    private val _reminderEvents = MutableSharedFlow<Long>(
         replay = 0,
         extraBufferCapacity = 16,
     )
-    val doseReminderEvents = _doseReminderEvents.asSharedFlow()
+    val reminderEvents = _reminderEvents.asSharedFlow()
 
     fun createChannels() {
         val notificationManager = context.getSystemService(NotificationManager::class.java)
@@ -61,12 +63,19 @@ class NotificationScheduler(
         )
     }
 
-    fun rescheduleAll() {
-        val timestamps = ScheduleCalculator.upcomingTimestamps(
+    fun rescheduleAll(resetExisting: Boolean = true) {
+        val now = System.currentTimeMillis()
+        if (resetExisting) {
+            cancelTrackedAlarms()
+        }
+        reconcileRecentPast(now)
+        if (resetExisting) {
+            restoreActiveReminders(now)
+        }
+        ScheduleCalculator.upcomingTimestamps(
             medicines = repository.snapshot.value.medicines,
-            fromMillis = System.currentTimeMillis(),
-        )
-        timestamps.forEach { scheduleInitial(it) }
+            fromMillis = now,
+        ).forEach(::scheduleInitial)
     }
 
     fun cancelMedicineReminders(medicine: Medicine) {
@@ -74,61 +83,126 @@ class NotificationScheduler(
             medicines = listOf(medicine),
             fromMillis = System.currentTimeMillis(),
         ).forEach { scheduledAt ->
-            AlarmType.entries.forEach { type ->
-                alarmManager.cancel(alarmPendingIntent(scheduledAt, type))
-            }
+            cancelAllAlarms(scheduledAt)
+            stateStore.clearCycle(scheduledAt)
+            stateStore.untrack(scheduledAt)
             dismissDoseNotification(scheduledAt)
         }
-        NotificationManagerCompat.from(context).cancel(
-            STOCK_NOTIFICATION_BASE + medicine.id.toInt(),
-        )
+        dismissStockNotification(medicine.id)
     }
 
     fun scheduleInitial(scheduledAt: Long) {
-        scheduleAlarm(scheduledAt, scheduledAt, AlarmType.INITIAL)
-    }
-
-    fun scheduleSnoozed(scheduledAt: Long) {
-        cancelFollowUps(scheduledAt)
         scheduleAlarm(
-            triggerAt = System.currentTimeMillis() + SNOOZE_MILLIS,
+            triggerAt = scheduledAt,
             scheduledAt = scheduledAt,
-            type = AlarmType.SNOOZED,
+            type = AlarmType.INITIAL,
         )
     }
 
-    fun scheduleInitialFollowUps(scheduledAt: Long) {
+    fun handleInitial(scheduledAt: Long) {
+        if (!hasPendingDoses(scheduledAt)) {
+            cancelFollowUps(scheduledAt)
+            return
+        }
+        deliverReminder(scheduledAt)
+        scheduleDayEnd(scheduledAt)
+        scheduleNextRepeat(
+            scheduledAt = scheduledAt,
+            cycleStartedAt = scheduledAt,
+            fromStage = 0,
+            now = System.currentTimeMillis(),
+        )
+    }
+
+    fun handleRepeat(
+        scheduledAt: Long,
+        cycleStartedAt: Long,
+        stage: Int,
+    ) {
         val now = System.currentTimeMillis()
-        val repeatAt = scheduledAt + SNOOZE_MILLIS
-        val expireAt = scheduledAt + EXPIRE_MILLIS
-        if (repeatAt > now) scheduleAlarm(repeatAt, scheduledAt, AlarmType.REPEAT)
-        if (expireAt > now) {
-            scheduleAlarm(expireAt, scheduledAt, AlarmType.EXPIRE)
-        } else {
+        if (now >= ReminderPolicy.dayEndAt(scheduledAt)) {
             markExpired(scheduledAt)
+            return
+        }
+        if (!hasPendingDoses(scheduledAt)) {
+            cancelFollowUps(scheduledAt)
+            dismissDoseNotification(scheduledAt)
+            return
+        }
+        deliverReminder(scheduledAt)
+        scheduleNextRepeat(
+            scheduledAt = scheduledAt,
+            cycleStartedAt = cycleStartedAt,
+            fromStage = stage + 1,
+            now = now,
+        )
+    }
+
+    fun handleLegacySnoozed(scheduledAt: Long) {
+        if (!hasPendingDoses(scheduledAt)) {
+            cancelFollowUps(scheduledAt)
+            return
+        }
+        val now = System.currentTimeMillis()
+        deliverReminder(scheduledAt)
+        scheduleDayEnd(scheduledAt)
+        scheduleNextRepeat(
+            scheduledAt = scheduledAt,
+            cycleStartedAt = now,
+            fromStage = 0,
+            now = now,
+        )
+    }
+
+    fun handleLegacyExpiry(scheduledAt: Long) {
+        if (hasPendingDoses(scheduledAt)) {
+            val now = System.currentTimeMillis()
+            deliverReminder(scheduledAt)
+            scheduleDayEnd(scheduledAt)
+            scheduleNextRepeat(
+                scheduledAt = scheduledAt,
+                cycleStartedAt = now,
+                fromStage = 0,
+                now = now,
+            )
+        } else {
+            cancelFollowUps(scheduledAt)
         }
     }
 
-    fun scheduleSnoozedExpiry(scheduledAt: Long) {
-        scheduleAlarm(
-            triggerAt = System.currentTimeMillis() + EXPIRE_MILLIS,
+    fun scheduleSnoozed(scheduledAt: Long) {
+        cancelRetryAlarm(scheduledAt)
+        val now = System.currentTimeMillis()
+        scheduleDayEnd(scheduledAt)
+        scheduleNextRepeat(
             scheduledAt = scheduledAt,
-            type = AlarmType.EXPIRE,
+            cycleStartedAt = now,
+            fromStage = 0,
+            now = now,
         )
     }
 
     fun cancelFollowUps(scheduledAt: Long) {
-        listOf(AlarmType.REPEAT, AlarmType.SNOOZED, AlarmType.EXPIRE).forEach { type ->
-            alarmManager.cancel(alarmPendingIntent(scheduledAt, type))
-        }
+        cancelAllAlarms(scheduledAt)
+        stateStore.clearCycle(scheduledAt)
+        stateStore.untrack(scheduledAt)
     }
+
+    fun activeReminderTimestamps(now: Long = System.currentTimeMillis()): List<Long> =
+        stateStore.trackedTimestamps()
+            .asSequence()
+            .filter { scheduledAt ->
+                scheduledAt <= now &&
+                    ReminderPolicy.dayEndAt(scheduledAt) > now &&
+                    hasPendingDoses(scheduledAt)
+            }
+            .sorted()
+            .toList()
 
     @SuppressLint("MissingPermission")
     fun showDoseNotification(scheduledAt: Long) {
         val doses = repository.dosesAt(scheduledAt).filter { it.status == IntakeStatus.PENDING }
-        if (doses.isEmpty()) return
-        _doseReminderEvents.tryEmit(DoseReminderEvent(scheduledAt))
-        if (!canPostNotifications()) return
+        if (doses.isEmpty() || !canPostNotifications()) return
 
         val names = doses.joinToString(", ") { it.medicine.name }
         val time = Instant.ofEpochMilli(scheduledAt)
@@ -152,45 +226,85 @@ class NotificationScheduler(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val notification = NotificationCompat.Builder(context, MEDICINE_CHANNEL)
+        val notificationBuilder = NotificationCompat.Builder(context, MEDICINE_CHANNEL)
             .setSmallIcon(R.drawable.ic_launcher)
             .setContentTitle(title)
             .setContentText(content)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(content))
             .setContentIntent(openIntent)
             .setAutoCancel(false)
             .setOngoing(false)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .addAction(
-                0,
-                context.getString(R.string.notification_take_all),
-                actionPendingIntent(scheduledAt, NotificationAction.TAKE_ALL),
-            )
-            .addAction(
-                0,
-                context.getString(R.string.notification_skip_all),
-                actionPendingIntent(scheduledAt, NotificationAction.SKIP_ALL),
-            )
-            .addAction(
-                0,
-                context.getString(R.string.notification_snooze),
-                actionPendingIntent(scheduledAt, NotificationAction.SNOOZE),
-            )
-            .build()
 
-        NotificationManagerCompat.from(context).notify(notificationId(scheduledAt), notification)
+        if (doses.size > 1) {
+            val inboxStyle = NotificationCompat.InboxStyle()
+                .setBigContentTitle("$title · $time")
+                .setSummaryText(context.getString(R.string.notification_choose_hint))
+            doses.forEach { dose ->
+                inboxStyle.addLine("${dose.medicine.name} · ${dose.medicine.dosage}")
+            }
+            notificationBuilder
+                .setStyle(inboxStyle)
+                .addAction(
+                    0,
+                    context.getString(R.string.notification_choose),
+                    openIntent,
+                )
+                .addAction(
+                    0,
+                    context.getString(R.string.notification_taken_all),
+                    actionPendingIntent(scheduledAt, NotificationAction.TAKE_ALL),
+                )
+                .addAction(
+                    0,
+                    context.getString(R.string.notification_snooze),
+                    actionPendingIntent(scheduledAt, NotificationAction.SNOOZE),
+                )
+        } else {
+            notificationBuilder
+                .setStyle(NotificationCompat.BigTextStyle().bigText(content))
+                .addAction(
+                    0,
+                    context.getString(R.string.notification_taken_single),
+                    actionPendingIntent(scheduledAt, NotificationAction.TAKE_ALL),
+                )
+                .addAction(
+                    0,
+                    context.getString(R.string.notification_skip_all),
+                    actionPendingIntent(scheduledAt, NotificationAction.SKIP_ALL),
+                )
+                .addAction(
+                    0,
+                    context.getString(R.string.notification_snooze),
+                    actionPendingIntent(scheduledAt, NotificationAction.SNOOZE),
+                )
+        }
+
+        NotificationManagerCompat.from(context).notify(
+            notificationId(scheduledAt),
+            notificationBuilder.build(),
+        )
     }
 
     fun dismissDoseNotification(scheduledAt: Long) {
         NotificationManagerCompat.from(context).cancel(notificationId(scheduledAt))
     }
 
+    fun dismissStockNotification(medicineId: Long) {
+        NotificationManagerCompat.from(context).cancel(
+            STOCK_NOTIFICATION_BASE + medicineId.toInt(),
+        )
+    }
+
     @SuppressLint("MissingPermission")
     fun showLowStockNotifications(medicines: List<Medicine>) {
         if (!canPostNotifications()) return
         medicines
-            .filter { it.remaining <= it.tabletsPerIntake * 3 && it.remaining >= 0 }
+            .filter {
+                it.trackStock &&
+                    it.remaining <= it.tabletsPerIntake * 3 &&
+                    it.remaining >= 0
+            }
             .forEach { medicine ->
                 val text = "Осталось ${medicine.remaining.displayAmount()} шт. — не больше трёх приёмов"
                 val notification = NotificationCompat.Builder(context, STOCK_CHANNEL)
@@ -209,17 +323,134 @@ class NotificationScheduler(
                         ),
                     )
                     .build()
-                NotificationManagerCompat.from(context).notify(STOCK_NOTIFICATION_BASE + medicine.id.toInt(), notification)
+                NotificationManagerCompat.from(context).notify(
+                    STOCK_NOTIFICATION_BASE + medicine.id.toInt(),
+                    notification,
+                )
             }
     }
 
     fun markExpired(scheduledAt: Long) {
         repository.markAll(scheduledAt, IntakeStatus.SKIPPED)
+        cancelFollowUps(scheduledAt)
         dismissDoseNotification(scheduledAt)
     }
 
-    private fun scheduleAlarm(triggerAt: Long, scheduledAt: Long, type: AlarmType) {
-        val pendingIntent = alarmPendingIntent(scheduledAt, type)
+    private fun deliverReminder(scheduledAt: Long) {
+        showDoseNotification(scheduledAt)
+        _reminderEvents.tryEmit(scheduledAt)
+    }
+
+    private fun scheduleNextRepeat(
+        scheduledAt: Long,
+        cycleStartedAt: Long,
+        fromStage: Int,
+        now: Long,
+    ) {
+        val repeat = ReminderPolicy.nextRepeat(
+            cycleStartedAt = cycleStartedAt,
+            fromStage = fromStage,
+            now = now,
+            dayEndAt = ReminderPolicy.dayEndAt(scheduledAt),
+        )
+        if (repeat == null) {
+            stateStore.clearCycle(scheduledAt)
+            cancelRetryAlarm(scheduledAt)
+            return
+        }
+        stateStore.saveCycle(
+            scheduledAt = scheduledAt,
+            cycleStartedAt = cycleStartedAt,
+            nextStage = repeat.stage,
+        )
+        scheduleAlarm(
+            triggerAt = repeat.triggerAt,
+            scheduledAt = scheduledAt,
+            type = AlarmType.REPEAT,
+            cycleStartedAt = cycleStartedAt,
+            repeatStage = repeat.stage,
+        )
+    }
+
+    private fun scheduleDayEnd(scheduledAt: Long) {
+        val dayEndAt = ReminderPolicy.dayEndAt(scheduledAt)
+        if (dayEndAt <= System.currentTimeMillis()) {
+            markExpired(scheduledAt)
+            return
+        }
+        scheduleAlarm(
+            triggerAt = dayEndAt,
+            scheduledAt = scheduledAt,
+            type = AlarmType.DAY_END,
+        )
+    }
+
+    private fun restoreActiveReminders(now: Long) {
+        val today = LocalDate.now()
+        repository.dosesForDate(today)
+            .asSequence()
+            .filter { it.status == IntakeStatus.PENDING && it.scheduledAt < now }
+            .map { it.scheduledAt }
+            .distinct()
+            .forEach { scheduledAt ->
+                scheduleDayEnd(scheduledAt)
+                val cycle = stateStore.loadCycle(scheduledAt) ?: return@forEach
+                scheduleNextRepeat(
+                    scheduledAt = scheduledAt,
+                    cycleStartedAt = cycle.cycleStartedAt,
+                    fromStage = cycle.nextStage,
+                    now = now,
+                )
+            }
+    }
+
+    private fun reconcileRecentPast(now: Long) {
+        val today = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate()
+        for (daysAgo in 1L..RECONCILIATION_DAYS) {
+            val date = today.minusDays(daysAgo)
+            repository.dosesForDate(date, activeOnly = false)
+                .asSequence()
+                .filter { it.status == IntakeStatus.PENDING }
+                .map { it.scheduledAt }
+                .distinct()
+                .forEach(::markExpired)
+        }
+    }
+
+    private fun cancelTrackedAlarms() {
+        stateStore.trackedTimestamps().forEach(::cancelAllAlarms)
+        stateStore.clearTrackedTimestamps()
+    }
+
+    private fun cancelAllAlarms(scheduledAt: Long) {
+        AlarmType.entries.forEach { type ->
+            alarmManager.cancel(alarmPendingIntent(scheduledAt, type))
+        }
+    }
+
+    private fun cancelRetryAlarm(scheduledAt: Long) {
+        listOf(AlarmType.REPEAT, AlarmType.SNOOZED).forEach { type ->
+            alarmManager.cancel(alarmPendingIntent(scheduledAt, type))
+        }
+    }
+
+    private fun hasPendingDoses(scheduledAt: Long): Boolean =
+        repository.dosesAt(scheduledAt).any { it.status == IntakeStatus.PENDING }
+
+    private fun scheduleAlarm(
+        triggerAt: Long,
+        scheduledAt: Long,
+        type: AlarmType,
+        cycleStartedAt: Long = scheduledAt,
+        repeatStage: Int = 0,
+    ) {
+        val pendingIntent = alarmPendingIntent(
+            scheduledAt = scheduledAt,
+            type = type,
+            cycleStartedAt = cycleStartedAt,
+            repeatStage = repeatStage,
+        )
+        stateStore.track(scheduledAt)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()) {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
         } else {
@@ -227,7 +458,12 @@ class NotificationScheduler(
         }
     }
 
-    private fun alarmPendingIntent(scheduledAt: Long, type: AlarmType): PendingIntent =
+    private fun alarmPendingIntent(
+        scheduledAt: Long,
+        type: AlarmType,
+        cycleStartedAt: Long = scheduledAt,
+        repeatStage: Int = 0,
+    ): PendingIntent =
         PendingIntent.getBroadcast(
             context,
             requestCode(scheduledAt, type.ordinal),
@@ -235,6 +471,8 @@ class NotificationScheduler(
                 action = ACTION_ALARM
                 putExtra(EXTRA_SCHEDULED_AT, scheduledAt)
                 putExtra(EXTRA_ALARM_TYPE, type.name)
+                putExtra(EXTRA_CYCLE_STARTED_AT, cycleStartedAt)
+                putExtra(EXTRA_REPEAT_STAGE, repeatStage)
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -260,13 +498,16 @@ class NotificationScheduler(
 
     private fun notificationId(scheduledAt: Long): Int = scheduledAt.hashCode()
 
-    private fun requestCode(scheduledAt: Long, salt: Int): Int = 31 * scheduledAt.hashCode() + salt
+    private fun requestCode(scheduledAt: Long, salt: Int): Int =
+        31 * scheduledAt.hashCode() + salt
 
     enum class AlarmType {
         INITIAL,
         REPEAT,
+        // Kept in 1.3.0 so alarms created by 1.2.x are consumed without applying old behavior.
         SNOOZED,
         EXPIRE,
+        DAY_END,
     }
 
     enum class NotificationAction {
@@ -279,12 +520,13 @@ class NotificationScheduler(
         const val EXTRA_SCHEDULED_AT = "scheduled_at"
         const val EXTRA_ALARM_TYPE = "alarm_type"
         const val EXTRA_NOTIFICATION_ACTION = "notification_action"
+        const val EXTRA_CYCLE_STARTED_AT = "cycle_started_at"
+        const val EXTRA_REPEAT_STAGE = "repeat_stage"
         private const val ACTION_ALARM = "com.denisp.pillstracker.ALARM"
         private const val ACTION_NOTIFICATION = "com.denisp.pillstracker.NOTIFICATION_ACTION"
         private const val MEDICINE_CHANNEL = "medicine_reminders"
         private const val STOCK_CHANNEL = "stock_reminders"
         private const val STOCK_NOTIFICATION_BASE = 500_000
-        private const val SNOOZE_MILLIS = 10 * 60 * 1000L
-        private const val EXPIRE_MILLIS = 3 * 60 * 60 * 1000L
+        private const val RECONCILIATION_DAYS = 30L
     }
 }

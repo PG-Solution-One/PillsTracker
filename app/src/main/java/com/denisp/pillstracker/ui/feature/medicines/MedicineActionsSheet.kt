@@ -119,11 +119,13 @@ internal fun MedicineActionsSheet(
                             label = "Расписание",
                             value = medicineScheduleSummary(medicine),
                         )
-                        MedicineDetail(
-                            label = "Остаток",
-                            value = "${medicine.remaining.displayAmount()} из " +
-                                "${medicine.packageSize.displayAmount()} шт.",
-                        )
+                        if (medicine.trackStock) {
+                            MedicineDetail(
+                                label = "Остаток",
+                                value = "${medicine.remaining.displayAmount()} из " +
+                                    "${medicine.packageSize.displayAmount()} шт.",
+                            )
+                        }
                         if (medicine.note.isNotBlank()) {
                             MedicineDetail(
                                 label = "Заметка",
@@ -154,13 +156,15 @@ internal fun MedicineActionsSheet(
                         modifier = Modifier.padding(start = AppSpacing.Sm),
                     )
                 }
-                AppSecondaryButton(
-                    onClick = onRefill,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 52.dp),
-                ) {
-                    Text("Пополнить остаток")
+                if (medicine.trackStock) {
+                    AppSecondaryButton(
+                        onClick = onRefill,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 52.dp),
+                    ) {
+                        Text("Пополнить остаток")
+                    }
                 }
                 MedicineStateActions(
                     state = medicine.state,

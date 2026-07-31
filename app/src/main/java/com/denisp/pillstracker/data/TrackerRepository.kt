@@ -51,6 +51,7 @@ class TrackerRepository(private val database: TrackerDatabase) {
 
     fun refill(medicineId: Long, addedAmount: Double) {
         val medicine = _snapshot.value.medicines.firstOrNull { it.id == medicineId } ?: return
+        if (!medicine.trackStock) return
         if (
             StockRules.remainingAfterRefill(
                 currentRemaining = medicine.remaining,
@@ -65,17 +66,7 @@ class TrackerRepository(private val database: TrackerDatabase) {
 
     fun markIntake(medicineId: Long, scheduledAt: Long, status: IntakeStatus) {
         if (!IntakeRules.canChangeStatus(scheduledAt)) return
-        val medicine = _snapshot.value.medicines.firstOrNull { it.id == medicineId } ?: return
-        val currentStatus = _snapshot.value.records
-            .firstOrNull { it.medicineId == medicineId && it.scheduledAt == scheduledAt }
-            ?.status
-            ?: IntakeStatus.PENDING
-        if (
-            status == IntakeStatus.TAKEN &&
-            !IntakeRules.canMarkTaken(medicine.remaining, medicine.tabletsPerIntake, currentStatus)
-        ) {
-            return
-        }
+        if (_snapshot.value.medicines.none { it.id == medicineId }) return
         database.markIntake(medicineId, scheduledAt, status)
         refresh()
     }
@@ -84,13 +75,6 @@ class TrackerRepository(private val database: TrackerDatabase) {
         if (!IntakeRules.canChangeStatus(scheduledAt)) return emptyList()
         val medicines = dosesAt(scheduledAt)
             .filter { it.status == IntakeStatus.PENDING }
-            .filter {
-                IntakeRules.canMarkTaken(
-                    remaining = it.medicine.remaining,
-                    tabletsPerIntake = it.medicine.tabletsPerIntake,
-                    currentStatus = it.status,
-                )
-            }
             .map { it.medicine }
         medicines.forEach { database.markIntake(it.id, scheduledAt, status) }
         refresh()

@@ -41,7 +41,7 @@ internal fun MedicineColorPicker(
                     .size(42.dp)
                     .background(
                         if (color == selectedColor) {
-                            MaterialTheme.colorScheme.onSurface
+                            MaterialTheme.colorScheme.primary
                         } else {
                             Color.Transparent
                         },
@@ -51,7 +51,7 @@ internal fun MedicineColorPicker(
                     .background(Color(color.toInt()), CircleShape)
                     .border(
                         width = 1.dp,
-                        color = if (color == MedicinePalette.first()) {
+                        color = if (color == MedicinePalette.first() || colors !== MedicinePalette) {
                             MaterialTheme.colorScheme.outline
                         } else {
                             Color.Transparent

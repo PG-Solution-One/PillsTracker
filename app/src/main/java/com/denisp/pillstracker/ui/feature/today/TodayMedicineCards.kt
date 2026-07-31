@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.denisp.pillstracker.domain.IntakeRules
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.ScheduledDose
@@ -38,6 +37,8 @@ internal fun TodayDoseCard(
         showScheduledTime = true,
         isNext = isNext,
         onClick = onOpen,
+        medicineAppearanceSize = 64.dp,
+        prominentScheduledTime = true,
     )
 }
 
@@ -76,11 +77,6 @@ internal fun AsNeededMedicineCard(
     onTaken: () -> Unit,
     onOpen: () -> Unit,
 ) {
-    val canTake = IntakeRules.canMarkTaken(
-        remaining = medicine.remaining,
-        tabletsPerIntake = medicine.tabletsPerIntake,
-        currentStatus = IntakeStatus.PENDING,
-    )
     Card(
         onClick = onOpen,
         shape = RoundedCornerShape(18.dp),
@@ -97,17 +93,24 @@ internal fun AsNeededMedicineCard(
                     .weight(1f)
                     .padding(horizontal = 12.dp),
             ) {
-                Text(medicine.name, fontWeight = FontWeight.SemiBold)
-                Text("${medicine.dosage} · осталось ${medicine.remaining.displayAmount()} шт.")
-                if (!canTake) {
+                Text(
+                    text = medicine.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "${medicine.dosage} · " +
+                        "${medicine.tabletsPerIntake.displayAmount()} шт.",
+                )
+                if (medicine.trackStock) {
                     Text(
-                        "Лекарство закончилось",
-                        color = MaterialTheme.colorScheme.error,
+                        "Осталось ${medicine.remaining.displayAmount()} шт.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
-            Button(onClick = onTaken, enabled = canTake) { Text("Принял") }
+            Button(onClick = onTaken) { Text("Принял") }
         }
     }
 }
@@ -124,5 +127,5 @@ internal fun TodaySectionTitle(title: String) {
 
 @Composable
 private fun MedicineDot(medicine: Medicine) {
-    MedicineAppearance(medicine = medicine, size = 25.dp)
+    MedicineAppearance(medicine = medicine, size = 52.dp)
 }

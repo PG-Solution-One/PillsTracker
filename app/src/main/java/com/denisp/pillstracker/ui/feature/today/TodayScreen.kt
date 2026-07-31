@@ -22,6 +22,8 @@ import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.ScheduledDose
 import com.denisp.pillstracker.model.TrackerSnapshot
 import com.denisp.pillstracker.notifications.NotificationScheduler
+import com.denisp.pillstracker.ui.components.GroupedIntakeCard
+import com.denisp.pillstracker.ui.components.updateIntakeGroupStatus
 import com.denisp.pillstracker.ui.components.updateIntakeStatus
 import com.denisp.pillstracker.ui.theme.AppEmptyState
 import com.denisp.pillstracker.ui.theme.AppSectionHeader
@@ -105,14 +107,37 @@ fun TodayScreen(
                     )
                 }
             } else {
-                items(doses, key = { "today-${it.medicine.id}-${it.scheduledAt}" }) { dose ->
-                    TodayDoseCard(
-                        dose = dose,
-                        isNext = uiState.nextDose?.medicine?.id == dose.medicine.id &&
-                            uiState.nextDose.scheduledAt == dose.scheduledAt,
-                        onStatus = { markDose(dose, it) },
-                        onOpen = { onOpenMedicine(dose.medicine) },
-                    )
+                items(
+                    uiState.doseGroups,
+                    key = { "today-group-${it.scheduledAt}" },
+                ) { group ->
+                    if (group.doses.size == 1) {
+                        val dose = group.doses.first()
+                        TodayDoseCard(
+                            dose = dose,
+                            isNext = uiState.nextDose?.medicine?.id == dose.medicine.id &&
+                                uiState.nextDose.scheduledAt == dose.scheduledAt,
+                            onStatus = { markDose(dose, it) },
+                            onOpen = { onOpenMedicine(dose.medicine) },
+                        )
+                    } else {
+                        GroupedIntakeCard(
+                            doses = group.doses,
+                            isNext = uiState.nextDose?.scheduledAt == group.scheduledAt,
+                            onStatus = markDose,
+                            onTakeAll = {
+                                updateIntakeGroupStatus(
+                                    repository = repository,
+                                    scheduler = scheduler,
+                                    scheduledAt = group.scheduledAt,
+                                    status = IntakeStatus.TAKEN,
+                                )
+                            },
+                            onOpen = onOpenMedicine,
+                            medicineAppearanceSize = 56.dp,
+                            prominentTime = true,
+                        )
+                    }
                 }
             }
 

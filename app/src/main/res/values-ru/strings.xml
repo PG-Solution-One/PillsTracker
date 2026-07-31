@@ -5,9 +5,13 @@
     <string name="notification_channel_name">Приём лекарств</string>
     <string name="notification_channel_description">Напоминания о запланированном приёме</string>
     <string name="stock_channel_name">Запас лекарств</string>
-    <string name="notification_take_all">Принял всё</string>
+    <string name="notification_taken_single">Принято</string>
+    <string name="notification_taken_all">Приняты все</string>
     <string name="notification_skip_all">Не принял</string>
-    <string name="notification_snooze">Отложить на 10 минут</string>
+    <string name="notification_choose">Выбрать</string>
+    <string name="notification_choose_hint">Выберите лекарства по отдельности или примите все</string>
+    <string name="notification_snooze">Отложить</string>
+    <string name="reminder_snooze">Напомнить через 30 минут</string>
 
     <string name="age">Возраст</string>
     <string name="age_not_set">Указать возраст</string>
@@ -23,10 +27,6 @@
     <string name="my_medicines">Мои лекарства</string>
     <string name="take_medicine">Пора принять лекарство</string>
     <string name="take_medicines">Пора принять лекарства</string>
-    <string name="taken">Принял</string>
-    <string name="taken_all">Принял всё</string>
-    <string name="remind_later">Напомнить позже</string>
-    <string name="medicine_reminder_note_default">Запейте лекарство стаканом воды</string>
     <string name="choose">Выбрать</string>
     <string name="done">Готово</string>
     <string name="cancel">Отмена</string>

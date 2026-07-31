@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import androidx.core.database.sqlite.transaction
 import com.denisp.pillstracker.model.IntakeRecord
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.DosageUnit
@@ -37,6 +38,7 @@ class TrackerDatabase(context: Context) :
                 tablets_per_intake REAL NOT NULL,
                 package_size REAL NOT NULL,
                 remaining REAL NOT NULL,
+                track_stock INTEGER NOT NULL,
                 meal_timing TEXT NOT NULL,
                 note TEXT NOT NULL,
                 start_epoch_day INTEGER NOT NULL,
@@ -120,6 +122,11 @@ class TrackerDatabase(context: Context) :
                     "DEFAULT $DEFAULT_MEDICINE_BACKGROUND_ARGB",
             )
         }
+        if (oldVersion < 5) {
+            database.execSQL(
+                "ALTER TABLE medicines ADD COLUMN track_stock INTEGER NOT NULL DEFAULT 1",
+            )
+        }
     }
 
     @Synchronized
@@ -160,6 +167,9 @@ class TrackerDatabase(context: Context) :
                             tabletsPerIntake = cursor.getDouble(cursor.getColumnIndexOrThrow("tablets_per_intake")),
                             packageSize = cursor.getDouble(cursor.getColumnIndexOrThrow("package_size")),
                             remaining = cursor.getDouble(cursor.getColumnIndexOrThrow("remaining")),
+                            trackStock = cursor.getInt(
+                                cursor.getColumnIndexOrThrow("track_stock"),
+                            ) != 0,
                             mealTiming = enumValueOf(cursor.getString(cursor.getColumnIndexOrThrow("meal_timing"))),
                             note = cursor.getString(cursor.getColumnIndexOrThrow("note")),
                             startDate = LocalDate.ofEpochDay(
@@ -209,8 +219,7 @@ class TrackerDatabase(context: Context) :
     @Synchronized
     fun saveMedicine(medicine: Medicine): Long {
         val database = writableDatabase
-        database.beginTransaction()
-        return try {
+        return database.transaction {
             val medicineId = if (medicine.id == 0L) {
                 database.insertOrThrow("medicines", null, medicineValues(medicine))
             } else {
@@ -234,10 +243,7 @@ class TrackerDatabase(context: Context) :
                     },
                 )
             }
-            database.setTransactionSuccessful()
             medicineId
-        } finally {
-            database.endTransaction()
         }
     }
 
@@ -267,7 +273,7 @@ class TrackerDatabase(context: Context) :
             """
             UPDATE medicines
             SET remaining = MAX(0, remaining) + ?
-            WHERE id = ?
+            WHERE id = ? AND track_stock = 1
             """.trimIndent(),
             arrayOf<Any>(addedAmount, medicineId),
         )
@@ -281,8 +287,7 @@ class TrackerDatabase(context: Context) :
         updatedAt: Long = System.currentTimeMillis(),
     ) {
         val database = writableDatabase
-        database.beginTransaction()
-        try {
+        database.transaction {
             val previous = database.query(
                 "intake_records",
                 arrayOf("status"),
@@ -293,23 +298,6 @@ class TrackerDatabase(context: Context) :
                 null,
             ).use { cursor ->
                 if (cursor.moveToFirst()) enumValueOf<IntakeStatus>(cursor.getString(0)) else IntakeStatus.PENDING
-            }
-            if (previous != IntakeStatus.TAKEN && status == IntakeStatus.TAKEN) {
-                val hasStock = database.query(
-                    "medicines",
-                    arrayOf("remaining", "tablets_per_intake"),
-                    "id = ?",
-                    arrayOf(medicineId.toString()),
-                    null,
-                    null,
-                    null,
-                ).use { cursor ->
-                    cursor.moveToFirst() && cursor.getDouble(0) + 0.000_001 >= cursor.getDouble(1)
-                }
-                if (!hasStock) {
-                    database.setTransactionSuccessful()
-                    return
-                }
             }
             database.insertWithOnConflict(
                 "intake_records",
@@ -333,14 +321,11 @@ class TrackerDatabase(context: Context) :
                     """
                     UPDATE medicines
                     SET remaining = MAX(0, remaining + tablets_per_intake * ?)
-                    WHERE id = ?
+                    WHERE id = ? AND track_stock = 1
                     """.trimIndent(),
                     arrayOf<Any>(delta, medicineId),
                 )
             }
-            database.setTransactionSuccessful()
-        } finally {
-            database.endTransaction()
         }
     }
 
@@ -377,6 +362,7 @@ class TrackerDatabase(context: Context) :
         put("tablets_per_intake", medicine.tabletsPerIntake)
         put("package_size", medicine.packageSize)
         put("remaining", medicine.remaining)
+        put("track_stock", if (medicine.trackStock) 1 else 0)
         put("meal_timing", medicine.mealTiming.name)
         put("note", medicine.note.trim())
         put("start_epoch_day", medicine.startDate.toEpochDay())
@@ -387,6 +373,6 @@ class TrackerDatabase(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "pills_tracker.db"
-        private const val DATABASE_VERSION = 4
+        private const val DATABASE_VERSION = 5
     }
 }

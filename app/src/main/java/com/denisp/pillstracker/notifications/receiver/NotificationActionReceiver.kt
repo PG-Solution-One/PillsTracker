@@ -9,6 +9,7 @@ import com.denisp.pillstracker.notifications.NotificationScheduler
 import com.denisp.pillstracker.notifications.NotificationScheduler.Companion.EXTRA_NOTIFICATION_ACTION
 import com.denisp.pillstracker.notifications.NotificationScheduler.Companion.EXTRA_SCHEDULED_AT
 import com.denisp.pillstracker.notifications.NotificationScheduler.NotificationAction
+import com.denisp.pillstracker.ui.components.updateIntakeGroupStatus
 
 class NotificationActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -24,19 +25,20 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
         when (action) {
             NotificationAction.TAKE_ALL -> {
-                repository.markAll(scheduledAt, IntakeStatus.TAKEN)
-                scheduler.cancelFollowUps(scheduledAt)
-                scheduler.dismissDoseNotification(scheduledAt)
-                scheduler.showLowStockNotifications(
-                    repository.snapshot.value.medicines.filter { medicine ->
-                        medicine.remaining <= medicine.tabletsPerIntake * 3
-                    },
+                updateIntakeGroupStatus(
+                    repository = repository,
+                    scheduler = scheduler,
+                    scheduledAt = scheduledAt,
+                    status = IntakeStatus.TAKEN,
                 )
             }
             NotificationAction.SKIP_ALL -> {
-                repository.markAll(scheduledAt, IntakeStatus.SKIPPED)
-                scheduler.cancelFollowUps(scheduledAt)
-                scheduler.dismissDoseNotification(scheduledAt)
+                updateIntakeGroupStatus(
+                    repository = repository,
+                    scheduler = scheduler,
+                    scheduledAt = scheduledAt,
+                    status = IntakeStatus.SKIPPED,
+                )
             }
             NotificationAction.SNOOZE -> {
                 scheduler.dismissDoseNotification(scheduledAt)

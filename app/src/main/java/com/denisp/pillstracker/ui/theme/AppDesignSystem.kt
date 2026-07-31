@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -103,6 +104,8 @@ fun AppSurfaceCard(
     elevated: Boolean = false,
     containerColor: Color? = null,
     onClick: (() -> Unit)? = null,
+    shape: Shape = RoundedCornerShape(AppRadii.Card),
+    bordered: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.35f
@@ -110,7 +113,7 @@ fun AppSurfaceCard(
         modifier = modifier.then(
             if (onClick == null) Modifier else Modifier.clickable(onClick = onClick),
         ),
-        shape = RoundedCornerShape(AppRadii.Card),
+        shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = containerColor ?: if (elevated) {
                     MaterialTheme.colorScheme.surfaceContainerLowest
@@ -123,12 +126,16 @@ fun AppSurfaceCard(
                 if (elevated) AppElevation.Interactive else AppElevation.Surface
             },
         ),
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(
-                alpha = if (dark) 0.68f else 0.42f,
-            ),
-        ),
+        border = if (bordered) {
+            BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(
+                    alpha = if (dark) 0.68f else 0.42f,
+                ),
+            )
+        } else {
+            null
+        },
     ) {
         content()
     }

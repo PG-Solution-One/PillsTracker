@@ -242,7 +242,6 @@ private fun AsNeededIntakeCard(
     medicine: Medicine,
     onTaken: () -> Unit,
 ) {
-    val canTake = medicine.remaining + 0.000_001 >= medicine.tabletsPerIntake
     AppSurfaceCard(modifier = Modifier.fillMaxWidth(), elevated = true) {
         Row(
             modifier = Modifier
@@ -258,12 +257,18 @@ private fun AsNeededIntakeCard(
             ) {
                 Text(medicine.name, fontWeight = FontWeight.SemiBold)
                 Text(
-                    text = "${medicine.dosage} · осталось " +
-                        "${medicine.remaining.displayAmount()} шт.",
+                    text = buildString {
+                        append(medicine.dosage)
+                        if (medicine.trackStock) {
+                            append(" · осталось ")
+                            append(medicine.remaining.displayAmount())
+                            append(" шт.")
+                        }
+                    },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Button(onClick = onTaken, enabled = canTake) {
+            Button(onClick = onTaken) {
                 Text("Принял")
             }
         }

@@ -2,7 +2,7 @@ package com.denisp.pillstracker.model
 
 import java.time.LocalDate
 
-const val DEFAULT_MEDICINE_BACKGROUND_ARGB = 0xFFE7EAEEL
+const val DEFAULT_MEDICINE_BACKGROUND_ARGB = 0xFFC9E3F7L
 
 enum class MedicineForm(val title: String) {
     TABLET("Таблетка"),
@@ -59,6 +59,7 @@ data class Medicine(
     val tabletsPerIntake: Double,
     val packageSize: Double,
     val remaining: Double,
+    val trackStock: Boolean = true,
     val mealTiming: MealTiming,
     val note: String,
     val startDate: LocalDate,

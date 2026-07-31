@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,8 +32,7 @@ fun MedicinesScreen(
     snapshot: TrackerSnapshot,
     repository: TrackerRepository,
     scheduler: NotificationScheduler,
-    medicineToOpenId: Long?,
-    onMedicineOpened: () -> Unit,
+    onOpenDetails: (Medicine) -> Unit,
     onEdit: (Medicine) -> Unit,
     onChanged: () -> Unit,
 ) {
@@ -43,16 +41,6 @@ fun MedicinesScreen(
     var selectedMedicine by remember { mutableStateOf<Medicine?>(null) }
     var deleteMedicine by remember { mutableStateOf<Medicine?>(null) }
     val filtered = snapshot.medicines.filter { it.state == selectedState }
-
-    LaunchedEffect(medicineToOpenId, snapshot.medicines) {
-        if (medicineToOpenId != null) {
-            snapshot.medicines.firstOrNull { it.id == medicineToOpenId }?.let { medicine ->
-                selectedState = medicine.state
-                selectedMedicine = medicine
-            }
-            onMedicineOpened()
-        }
-    }
 
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         LazyColumn(
@@ -104,7 +92,8 @@ fun MedicinesScreen(
                 items(filtered, key = { it.id }) { medicine ->
                     MedicineCatalogCard(
                         medicine = medicine,
-                        onOpen = { selectedMedicine = medicine },
+                        onOpen = { onOpenDetails(medicine) },
+                        onLongPress = { selectedMedicine = medicine },
                     )
                 }
             }

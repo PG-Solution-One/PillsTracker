@@ -36,14 +36,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import com.denisp.pillstracker.domain.IntakeRules
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.ScheduleKind
 import com.denisp.pillstracker.model.ScheduledDose
@@ -63,12 +64,11 @@ fun SwipeableIntakeCard(
     showScheduledTime: Boolean = true,
     isNext: Boolean = false,
     onClick: (() -> Unit)? = null,
+    embedded: Boolean = false,
+    medicineAppearanceSize: Dp = 32.dp,
+    prominentScheduledTime: Boolean = false,
 ) {
-    val canTake = canEdit && IntakeRules.canMarkTaken(
-        remaining = dose.medicine.remaining,
-        tabletsPerIntake = dose.medicine.tabletsPerIntake,
-        currentStatus = dose.status,
-    )
+    val canTake = canEdit
     val currentOnStatus by rememberUpdatedState(onStatus)
     val currentCanEdit by rememberUpdatedState(canEdit)
     val currentCanTake by rememberUpdatedState(canTake)
@@ -91,7 +91,7 @@ fun SwipeableIntakeCard(
             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
         }
     }
-    val cardShape = RoundedCornerShape(18.dp)
+    val cardShape = if (embedded) RectangleShape else RoundedCornerShape(18.dp)
 
     Box(
         modifier = modifier
@@ -160,15 +160,25 @@ fun SwipeableIntakeCard(
                         selectedStatus?.let(currentOnStatus)
                     },
             ),
-            elevated = true,
+            elevated = !embedded,
+            containerColor = if (embedded) {
+                MaterialTheme.colorScheme.surfaceContainerLowest
+            } else {
+                null
+            },
             onClick = onClick,
+            shape = cardShape,
+            bordered = !embedded,
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    MedicineAppearance(medicine = dose.medicine, size = 32.dp)
+                    MedicineAppearance(
+                        medicine = dose.medicine,
+                        size = medicineAppearanceSize,
+                    )
                     Column(
                         modifier = Modifier
                             .weight(1f)
@@ -176,13 +186,18 @@ fun SwipeableIntakeCard(
                     ) {
                         Text(
                             text = dose.medicine.name,
+                            style = if (prominentScheduledTime) {
+                                MaterialTheme.typography.titleMedium
+                            } else {
+                                MaterialTheme.typography.bodyLarge
+                            },
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = buildString {
-                                if (showScheduledTime) {
+                                if (showScheduledTime && !prominentScheduledTime) {
                                     append(dose.scheduledAt.asTime())
                                     append(" · ")
                                 }
@@ -195,7 +210,7 @@ fun SwipeableIntakeCard(
                                 }
                             },
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
+                            maxLines = if (prominentScheduledTime) 2 else 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         if (dose.updatedAt != null && dose.status != IntakeStatus.PENDING) {
@@ -221,20 +236,21 @@ fun SwipeableIntakeCard(
                             )
                         }
                     }
-                    IntakeStatusControls(
-                        status = dose.status,
-                        enabled = canEdit,
-                        takenEnabled = canTake,
-                        onStatus = onStatus,
-                    )
-                }
-                if (canEdit && !canTake && dose.status != IntakeStatus.TAKEN) {
-                    Text(
-                        text = "Недостаточно лекарства: осталось " +
-                            "${dose.medicine.remaining.displayAmount()} шт.",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        if (showScheduledTime && prominentScheduledTime) {
+                            ScheduledTimeBadge(scheduledAt = dose.scheduledAt)
+                        }
+                        IntakeStatusControls(
+                            status = dose.status,
+                            enabled = canEdit,
+                            takenEnabled = canTake,
+                            subjectName = dose.medicine.name,
+                            onStatus = onStatus,
+                        )
+                    }
                 }
             }
         }
