@@ -3,7 +3,6 @@ package com.denisp.pillstracker.ui.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -45,6 +43,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import com.denisp.pillstracker.domain.DoseTimingPolicy
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.ScheduleKind
 import com.denisp.pillstracker.model.ScheduledDose
@@ -64,9 +63,11 @@ fun SwipeableIntakeCard(
     showScheduledTime: Boolean = true,
     isNext: Boolean = false,
     onClick: (() -> Unit)? = null,
+    onLongPress: (() -> Unit)? = null,
     embedded: Boolean = false,
     medicineAppearanceSize: Dp = 32.dp,
     prominentScheduledTime: Boolean = false,
+    nowMillis: Long = System.currentTimeMillis(),
 ) {
     val canTake = canEdit
     val currentOnStatus by rememberUpdatedState(onStatus)
@@ -76,6 +77,7 @@ fun SwipeableIntakeCard(
     val thresholdPx = with(density) { 64.dp.toPx() }
     val maximumOffsetPx = with(density) { 104.dp.toPx() }
     val haptics = LocalHapticFeedback.current
+    val isOverdue = DoseTimingPolicy.isOverdue(dose, nowMillis)
     var dragOffsetPx by remember(dose.medicine.id, dose.scheduledAt) {
         mutableFloatStateOf(0f)
     }
@@ -167,6 +169,7 @@ fun SwipeableIntakeCard(
                 null
             },
             onClick = onClick,
+            onLongClick = onLongPress,
             shape = cardShape,
             bordered = !embedded,
         ) {
@@ -227,6 +230,8 @@ fun SwipeableIntakeCard(
                                 },
                                 style = MaterialTheme.typography.labelMedium,
                             )
+                        } else if (isOverdue) {
+                            OverdueDoseLabel(scheduledAt = dose.scheduledAt)
                         } else if (isNext && dose.status == IntakeStatus.PENDING) {
                             Text(
                                 text = "Следующий приём",

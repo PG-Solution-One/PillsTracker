@@ -58,6 +58,21 @@ class TodayUiStateTest {
     }
 
     @Test
+    fun `overdue dose has priority over a future dose`() {
+        val medicine = medicine(id = 1)
+        val overdue = ScheduledDose(medicine, 1_000, IntakeStatus.PENDING)
+        val future = ScheduledDose(medicine, 4_000_000, IntakeStatus.PENDING)
+
+        val state = buildTodayUiState(
+            snapshot = TrackerSnapshot(listOf(medicine)),
+            doses = listOf(overdue, future),
+            nowMillis = 2_000_000,
+        )
+
+        assertEquals(overdue, state.nextDose)
+    }
+
+    @Test
     fun `medicine without stock tracking is excluded from low stock list`() {
         val untracked = medicine(id = 1, remaining = 0.0, trackStock = false)
 

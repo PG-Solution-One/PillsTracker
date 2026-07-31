@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.ScheduledDose
+import com.denisp.pillstracker.domain.DoseTimingPolicy
 import com.denisp.pillstracker.ui.asTime
 import com.denisp.pillstracker.ui.theme.AppDashboardCard
 
@@ -29,7 +30,9 @@ internal fun TodayOverviewCard(
     nextDose: ScheduledDose?,
     takenToday: Int,
     totalToday: Int,
+    nowMillis: Long,
 ) {
+    val isOverdue = nextDose?.let { DoseTimingPolicy.isOverdue(it, nowMillis) } == true
     AppDashboardCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 18.dp),
@@ -54,8 +57,9 @@ internal fun TodayOverviewCard(
                 DashboardMetric(
                     modifier = Modifier.weight(1.2f),
                     value = nextDose?.scheduledAt?.asTime() ?: "—",
-                    label = "Следующий приём",
+                    label = if (isOverdue) "Просрочено" else "Следующий приём",
                     accent = nextDose != null,
+                    urgent = isOverdue,
                 )
                 VerticalDashboardDivider()
                 Column(
@@ -99,6 +103,7 @@ private fun DashboardMetric(
     value: String,
     label: String,
     accent: Boolean = true,
+    urgent: Boolean = false,
 ) {
     Column(
         modifier = modifier,
@@ -109,7 +114,9 @@ private fun DashboardMetric(
             text = value,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
-            color = if (accent) {
+            color = if (urgent) {
+                MaterialTheme.colorScheme.error
+            } else if (accent) {
                 MaterialTheme.colorScheme.primary
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
@@ -120,7 +127,11 @@ private fun DashboardMetric(
             text = label,
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (urgent) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
         )
     }
 }

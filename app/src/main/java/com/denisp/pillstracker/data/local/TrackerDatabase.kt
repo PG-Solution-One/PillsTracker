@@ -9,12 +9,9 @@ import com.denisp.pillstracker.model.IntakeRecord
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.DosageUnit
 import com.denisp.pillstracker.model.DEFAULT_MEDICINE_BACKGROUND_ARGB
-import com.denisp.pillstracker.model.MealTiming
 import com.denisp.pillstracker.model.Medicine
-import com.denisp.pillstracker.model.MedicineForm
 import com.denisp.pillstracker.model.MedicineState
 import com.denisp.pillstracker.model.PillShape
-import com.denisp.pillstracker.model.ScheduleKind
 import com.denisp.pillstracker.model.ScheduleTime
 import java.time.LocalDate
 

@@ -30,4 +30,26 @@ class MedicineDetailsScreenTest {
             medicineDoseStatusLabel(status = null, scheduledAt = null, nowMillis = now),
         )
     }
+
+    @Test
+    fun `pending dose becomes overdue after thirty minutes`() {
+        val scheduledAt = 1_000L
+
+        assertEquals(
+            "Ожидает",
+            medicineDoseStatusLabel(
+                IntakeStatus.PENDING,
+                scheduledAt,
+                scheduledAt + 30 * 60 * 1000L - 1,
+            ),
+        )
+        assertEquals(
+            "Просрочено",
+            medicineDoseStatusLabel(
+                IntakeStatus.PENDING,
+                scheduledAt,
+                scheduledAt + 30 * 60 * 1000L,
+            ),
+        )
+    }
 }

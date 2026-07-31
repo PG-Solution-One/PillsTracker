@@ -1,5 +1,7 @@
 package com.denisp.pillstracker.ui.feature.today
 
+import com.denisp.pillstracker.domain.StockRules
+import com.denisp.pillstracker.domain.DoseTimingPolicy
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.MedicineState
@@ -40,6 +42,8 @@ internal fun buildTodayUiState(
 ): TodayUiState {
     val activeMedicines = snapshot.medicines.filter { it.state == MedicineState.ACTIVE }
     val nextDose = doses.firstOrNull {
+        DoseTimingPolicy.isOverdue(it, nowMillis)
+    } ?: doses.firstOrNull {
         it.status == IntakeStatus.PENDING && it.scheduledAt >= nowMillis
     } ?: doses.firstOrNull { it.status == IntakeStatus.PENDING }
 
@@ -48,9 +52,7 @@ internal fun buildTodayUiState(
         asNeededMedicines = activeMedicines.filter {
             it.scheduleKind == ScheduleKind.AS_NEEDED
         },
-        lowStockMedicines = activeMedicines.filter {
-            it.trackStock && it.remaining <= it.tabletsPerIntake * 3
-        },
+        lowStockMedicines = activeMedicines.filter(StockRules::isLowStock),
         doseGroups = groupTodayDoses(doses),
         nextDose = nextDose,
         takenToday = doses.count { it.status == IntakeStatus.TAKEN },

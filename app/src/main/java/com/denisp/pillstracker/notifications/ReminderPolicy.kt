@@ -1,10 +1,11 @@
 package com.denisp.pillstracker.notifications
 
+import com.denisp.pillstracker.domain.DoseTimingPolicy
 import java.time.Instant
 import java.time.ZoneId
 
 internal object ReminderPolicy {
-    const val FIRST_REPEAT_DELAY_MILLIS = 30 * 60 * 1000L
+    const val FIRST_REPEAT_DELAY_MILLIS = DoseTimingPolicy.OVERDUE_AFTER_MILLIS
     const val SECOND_REPEAT_DELAY_MILLIS = 2 * 60 * 60 * 1000L
     const val LATER_REPEAT_DELAY_MILLIS = 4 * 60 * 60 * 1000L
 

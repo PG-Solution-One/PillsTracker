@@ -37,9 +37,7 @@ fun MedicinesScreen(
     onChanged: () -> Unit,
 ) {
     var selectedState by remember { mutableStateOf(MedicineState.ACTIVE) }
-    var refillMedicine by remember { mutableStateOf<Medicine?>(null) }
     var selectedMedicine by remember { mutableStateOf<Medicine?>(null) }
-    var deleteMedicine by remember { mutableStateOf<Medicine?>(null) }
     val filtered = snapshot.medicines.filter { it.state == selectedState }
 
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -100,54 +98,14 @@ fun MedicinesScreen(
         }
     }
 
-    refillMedicine?.let { medicine ->
-        RefillMedicineDialog(
-            medicine = medicine,
-            onDismiss = { refillMedicine = null },
-            onSave = {
-                repository.refill(medicine.id, it)
-                refillMedicine = null
-            },
-        )
-    }
-
-    selectedMedicine?.let { medicine ->
-        MedicineActionsSheet(
-            medicine = medicine,
-            onDismiss = { selectedMedicine = null },
-            onEdit = {
-                selectedMedicine = null
-                onEdit(medicine)
-            },
-            onRefill = {
-                selectedMedicine = null
-                refillMedicine = medicine
-            },
-            onStateChange = { state ->
-                repository.setMedicineState(medicine.id, state)
-                onChanged()
-                selectedMedicine = null
-            },
-            onDelete = {
-                selectedMedicine = null
-                deleteMedicine = medicine
-            },
-        )
-    }
-
-    deleteMedicine?.let { medicine ->
-        DeleteMedicineDialog(
-            medicine = medicine,
-            onDismiss = { deleteMedicine = null },
-            onConfirm = {
-                scheduler.cancelMedicineReminders(medicine)
-                if (repository.deleteMedicine(medicine.id)) {
-                    scheduler.rescheduleAll()
-                }
-                deleteMedicine = null
-            },
-        )
-    }
+    MedicineQuickActionsHost(
+        selectedMedicine = selectedMedicine,
+        repository = repository,
+        scheduler = scheduler,
+        onDismiss = { selectedMedicine = null },
+        onEdit = onEdit,
+        onChanged = onChanged,
+    )
 }
 
 private fun MedicineState.filterTitle(): String = when (this) {

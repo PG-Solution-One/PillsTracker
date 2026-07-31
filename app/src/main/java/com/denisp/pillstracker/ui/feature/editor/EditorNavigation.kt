@@ -144,3 +144,36 @@ internal fun EditorNavigation(
         }
     }
 }
+
+@Composable
+internal fun EditSaveNavigation(
+    enabled: Boolean,
+    onSave: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        tonalElevation = AppElevation.Surface,
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            AppPrimaryButton(
+                onClick = onSave,
+                enabled = enabled,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 760.dp)
+                    .padding(horizontal = AppSpacing.Screen, vertical = AppSpacing.Md)
+                    .heightIn(min = 52.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                )
+                Spacer(Modifier.width(AppSpacing.Sm))
+                Text("Сохранить изменения")
+            }
+        }
+    }
+}

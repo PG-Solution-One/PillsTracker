@@ -1,6 +1,7 @@
 package com.denisp.pillstracker.ui.feature.today
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -28,6 +29,8 @@ internal fun TodayDoseCard(
     isNext: Boolean,
     onStatus: (IntakeStatus) -> Unit,
     onOpen: () -> Unit,
+    onLongPress: () -> Unit,
+    nowMillis: Long,
 ) {
     SwipeableIntakeCard(
         dose = dose,
@@ -37,8 +40,10 @@ internal fun TodayDoseCard(
         showScheduledTime = true,
         isNext = isNext,
         onClick = onOpen,
+        onLongPress = onLongPress,
         medicineAppearanceSize = 64.dp,
         prominentScheduledTime = true,
+        nowMillis = nowMillis,
     )
 }
 
@@ -46,10 +51,12 @@ internal fun TodayDoseCard(
 internal fun LowStockMedicineCard(
     medicine: Medicine,
     onOpen: () -> Unit,
+    onLongPress: () -> Unit,
 ) {
     Surface(
-        onClick = onOpen,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onOpen, onLongClick = onLongPress),
         color = MaterialTheme.colorScheme.errorContainer,
         shape = RoundedCornerShape(16.dp),
     ) {
@@ -76,9 +83,10 @@ internal fun AsNeededMedicineCard(
     medicine: Medicine,
     onTaken: () -> Unit,
     onOpen: () -> Unit,
+    onLongPress: () -> Unit,
 ) {
     Card(
-        onClick = onOpen,
+        modifier = Modifier.combinedClickable(onClick = onOpen, onLongClick = onLongPress),
         shape = RoundedCornerShape(18.dp),
     ) {
         Row(

@@ -59,9 +59,9 @@
 После сборки создаются:
 
 - устанавливаемый debug APK:
-  `app/build/outputs/pills-tracker/PillsTracker-1.3.0-test.apk`;
+  `app/build/outputs/pills-tracker/PillsTracker-1.4.0-test.apk`;
 - release APK:
-  `app/build/outputs/pills-tracker/PillsTracker-1.3.0-release.apk`.
+  `app/build/outputs/pills-tracker/PillsTracker-1.4.0-release.apk`.
 
 ## Данные и разрешения
 

@@ -11,6 +11,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -25,6 +29,8 @@ import com.denisp.pillstracker.notifications.NotificationScheduler
 import com.denisp.pillstracker.ui.components.GroupedIntakeCard
 import com.denisp.pillstracker.ui.components.updateIntakeGroupStatus
 import com.denisp.pillstracker.ui.components.updateIntakeStatus
+import com.denisp.pillstracker.ui.components.rememberMinuteNow
+import com.denisp.pillstracker.ui.feature.medicines.MedicineQuickActionsHost
 import com.denisp.pillstracker.ui.theme.AppEmptyState
 import com.denisp.pillstracker.ui.theme.AppSectionHeader
 import java.time.LocalDate
@@ -38,13 +44,16 @@ fun TodayScreen(
     userName: String,
     onShowMedicines: () -> Unit,
     onOpenMedicine: (Medicine) -> Unit,
+    onEditMedicine: (Medicine) -> Unit,
 ) {
     val today = LocalDate.now()
+    val nowMillis = rememberMinuteNow()
+    var selectedMedicine by remember { mutableStateOf<Medicine?>(null) }
     val doses = repository.dosesForDateIncludingManual(today, activeOnly = true)
     val uiState = buildTodayUiState(
         snapshot = snapshot,
         doses = doses,
-        nowMillis = System.currentTimeMillis(),
+        nowMillis = nowMillis,
     )
     val markDose: (ScheduledDose, IntakeStatus) -> Unit = { dose, status ->
         updateIntakeStatus(repository, scheduler, dose, status)
@@ -77,6 +86,7 @@ fun TodayScreen(
                     nextDose = uiState.nextDose,
                     takenToday = uiState.takenToday,
                     totalToday = uiState.totalToday,
+                    nowMillis = nowMillis,
                 )
             }
 
@@ -119,6 +129,8 @@ fun TodayScreen(
                                 uiState.nextDose.scheduledAt == dose.scheduledAt,
                             onStatus = { markDose(dose, it) },
                             onOpen = { onOpenMedicine(dose.medicine) },
+                            onLongPress = { selectedMedicine = dose.medicine },
+                            nowMillis = nowMillis,
                         )
                     } else {
                         GroupedIntakeCard(
@@ -134,8 +146,10 @@ fun TodayScreen(
                                 )
                             },
                             onOpen = onOpenMedicine,
+                            onLongPress = { selectedMedicine = it },
                             medicineAppearanceSize = 56.dp,
                             prominentTime = true,
+                            nowMillis = nowMillis,
                         )
                     }
                 }
@@ -156,6 +170,7 @@ fun TodayScreen(
                             )
                         },
                         onOpen = { onOpenMedicine(medicine) },
+                        onLongPress = { selectedMedicine = medicine },
                     )
                 }
             }
@@ -166,9 +181,19 @@ fun TodayScreen(
                     LowStockMedicineCard(
                         medicine = medicine,
                         onOpen = { onOpenMedicine(medicine) },
+                        onLongPress = { selectedMedicine = medicine },
                     )
                 }
             }
         }
     }
+
+    MedicineQuickActionsHost(
+        selectedMedicine = selectedMedicine,
+        repository = repository,
+        scheduler = scheduler,
+        onDismiss = { selectedMedicine = null },
+        onEdit = onEditMedicine,
+        onChanged = scheduler::rescheduleAll,
+    )
 }

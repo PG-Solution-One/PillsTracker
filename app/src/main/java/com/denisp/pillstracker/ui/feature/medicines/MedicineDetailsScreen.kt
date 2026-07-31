@@ -56,8 +56,9 @@ import com.denisp.pillstracker.ui.components.MedicineAppearance
 import com.denisp.pillstracker.ui.theme.AppRadii
 import com.denisp.pillstracker.ui.theme.AppSpacing
 import com.denisp.pillstracker.ui.theme.AppSurfaceCard
+import com.denisp.pillstracker.domain.DoseTimingPolicy
+import com.denisp.pillstracker.ui.components.rememberMinuteNow
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -69,8 +70,9 @@ internal fun MedicineDetailsScreen(
     todayDoses: List<ScheduledDose>,
     onBack: () -> Unit,
     onEdit: () -> Unit,
-    nowMillis: Long = System.currentTimeMillis(),
+    nowMillis: Long? = null,
 ) {
+    val currentNowMillis = nowMillis ?: rememberMinuteNow()
     BackHandler(onBack = onBack)
 
     Scaffold(
@@ -201,7 +203,7 @@ internal fun MedicineDetailsScreen(
                             medicine = medicine,
                             schedule = schedule,
                             dose = dosesByMinute[schedule.minuteOfDay],
-                            nowMillis = nowMillis,
+                            nowMillis = currentNowMillis,
                         )
                     }
                 }
@@ -391,6 +393,8 @@ private fun MedicineScheduleCard(
             Color(0xFFDDF5E8) to Color(0xFF14623E)
         dose?.status == IntakeStatus.SKIPPED ->
             MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        dose != null && DoseTimingPolicy.isOverdue(dose, nowMillis) ->
+            MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
         dose == null ->
             MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurfaceVariant
         dose.scheduledAt > nowMillis ->
@@ -460,6 +464,8 @@ internal fun medicineDoseStatusLabel(
     status == IntakeStatus.TAKEN -> "Принято"
     status == IntakeStatus.SKIPPED -> "Пропущено"
     status == null || scheduledAt == null -> "Не сегодня"
+    status == IntakeStatus.PENDING &&
+        nowMillis >= scheduledAt + DoseTimingPolicy.OVERDUE_AFTER_MILLIS -> "Просрочено"
     scheduledAt > nowMillis -> "Предстоящее"
     else -> "Ожидает"
 }

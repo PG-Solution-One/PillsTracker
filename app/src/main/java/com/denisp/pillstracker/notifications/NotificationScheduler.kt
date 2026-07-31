@@ -17,6 +17,8 @@ import com.denisp.pillstracker.MainActivity
 import com.denisp.pillstracker.R
 import com.denisp.pillstracker.data.TrackerRepository
 import com.denisp.pillstracker.domain.ScheduleCalculator
+import com.denisp.pillstracker.domain.DoseTimingPolicy
+import com.denisp.pillstracker.domain.StockRules
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.displayAmount
@@ -138,7 +140,11 @@ class NotificationScheduler(
         )
     }
 
-    fun handleLegacySnoozed(scheduledAt: Long) {
+    fun handleLegacySnoozed(scheduledAt: Long) = handleLegacyRetry(scheduledAt)
+
+    fun handleLegacyExpiry(scheduledAt: Long) = handleLegacyRetry(scheduledAt)
+
+    private fun handleLegacyRetry(scheduledAt: Long) {
         if (!hasPendingDoses(scheduledAt)) {
             cancelFollowUps(scheduledAt)
             return
@@ -152,22 +158,6 @@ class NotificationScheduler(
             fromStage = 0,
             now = now,
         )
-    }
-
-    fun handleLegacyExpiry(scheduledAt: Long) {
-        if (hasPendingDoses(scheduledAt)) {
-            val now = System.currentTimeMillis()
-            deliverReminder(scheduledAt)
-            scheduleDayEnd(scheduledAt)
-            scheduleNextRepeat(
-                scheduledAt = scheduledAt,
-                cycleStartedAt = now,
-                fromStage = 0,
-                now = now,
-            )
-        } else {
-            cancelFollowUps(scheduledAt)
-        }
     }
 
     fun scheduleSnoozed(scheduledAt: Long) {
@@ -208,8 +198,14 @@ class NotificationScheduler(
         val time = Instant.ofEpochMilli(scheduledAt)
             .atZone(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("HH:mm", Locale.forLanguageTag("ru")))
+        val isOverdue = doses.any { DoseTimingPolicy.isOverdue(it, System.currentTimeMillis()) }
         val title = context.getString(
-            if (doses.size == 1) R.string.take_medicine else R.string.take_medicines,
+            when {
+                isOverdue && doses.size == 1 -> R.string.overdue_medicine
+                isOverdue -> R.string.overdue_medicines
+                doses.size == 1 -> R.string.take_medicine
+                else -> R.string.take_medicines
+            },
         )
         val content = if (doses.size == 1) {
             "${doses.first().medicine.name} · ${doses.first().medicine.dosage}"
@@ -300,11 +296,7 @@ class NotificationScheduler(
     fun showLowStockNotifications(medicines: List<Medicine>) {
         if (!canPostNotifications()) return
         medicines
-            .filter {
-                it.trackStock &&
-                    it.remaining <= it.tabletsPerIntake * 3 &&
-                    it.remaining >= 0
-            }
+            .filter(StockRules::isLowStock)
             .forEach { medicine ->
                 val text = "Осталось ${medicine.remaining.displayAmount()} шт. — не больше трёх приёмов"
                 val notification = NotificationCompat.Builder(context, STOCK_CHANNEL)

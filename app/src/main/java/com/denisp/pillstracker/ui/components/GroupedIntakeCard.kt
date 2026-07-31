@@ -31,9 +31,12 @@ fun GroupedIntakeCard(
     modifier: Modifier = Modifier,
     isNext: Boolean = false,
     onOpen: ((Medicine) -> Unit)? = null,
+    onLongPress: ((Medicine) -> Unit)? = null,
     medicineAppearanceSize: Dp = 32.dp,
     prominentTime: Boolean = false,
     takeAllLabelOverride: String? = null,
+    enabled: Boolean = true,
+    nowMillis: Long = System.currentTimeMillis(),
 ) {
     if (doses.isEmpty()) return
 
@@ -87,7 +90,7 @@ fun GroupedIntakeCard(
                 }
                 Button(
                     onClick = onTakeAll,
-                    enabled = canTakeAll,
+                    enabled = canTakeAll && enabled,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Icon(Icons.Rounded.CheckCircle, contentDescription = null)
@@ -102,13 +105,15 @@ fun GroupedIntakeCard(
             doses.forEachIndexed { index, dose ->
                 SwipeableIntakeCard(
                     dose = dose,
-                    canEdit = true,
+                    canEdit = enabled,
                     onStatus = { status -> onStatus(dose, status) },
                     showScheduledTime = false,
                     isNext = false,
                     onClick = onOpen?.let { open -> { open(dose.medicine) } },
+                    onLongPress = onLongPress?.let { open -> { open(dose.medicine) } },
                     embedded = true,
                     medicineAppearanceSize = medicineAppearanceSize,
+                    nowMillis = nowMillis,
                 )
                 if (index != doses.lastIndex) {
                     HorizontalDivider(

@@ -2,6 +2,7 @@ package com.denisp.pillstracker.ui.theme
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -104,6 +105,7 @@ fun AppSurfaceCard(
     elevated: Boolean = false,
     containerColor: Color? = null,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     shape: Shape = RoundedCornerShape(AppRadii.Card),
     bordered: Boolean = true,
     content: @Composable () -> Unit,
@@ -111,7 +113,14 @@ fun AppSurfaceCard(
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.35f
     Card(
         modifier = modifier.then(
-            if (onClick == null) Modifier else Modifier.clickable(onClick = onClick),
+            when {
+                onLongClick != null -> Modifier.combinedClickable(
+                    onClick = onClick ?: {},
+                    onLongClick = onLongClick,
+                )
+                onClick != null -> Modifier.clickable(onClick = onClick)
+                else -> Modifier
+            },
         ),
         shape = shape,
         colors = CardDefaults.cardColors(

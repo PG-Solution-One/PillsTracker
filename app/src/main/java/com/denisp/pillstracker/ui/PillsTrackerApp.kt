@@ -66,6 +66,7 @@ fun PillsTrackerApp(
     var editedMedicine by remember { mutableStateOf<Medicine?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
     val reminderQueue = remember { mutableStateListOf<Long>() }
+    val dismissedReminderTimestamps = remember { mutableStateListOf<Long>() }
     val navigate: (AppDestination) -> Unit = { target ->
         if (navigationStack.lastOrNull() != target) {
             navigationStack.add(target)
@@ -103,15 +104,17 @@ fun PillsTrackerApp(
     LaunchedEffect(scheduler, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             scheduler.activeReminderTimestamps().forEach {
-                enqueueReminder(it, false)
+                if (it !in dismissedReminderTimestamps) enqueueReminder(it, false)
             }
             scheduler.reminderEvents.collect {
+                dismissedReminderTimestamps.remove(it)
                 enqueueReminder(it, false)
             }
         }
     }
     LaunchedEffect(openedScheduledAt) {
         openedScheduledAt?.let {
+            dismissedReminderTimestamps.remove(it)
             enqueueReminder(it, true)
         }
     }
@@ -127,6 +130,7 @@ fun PillsTrackerApp(
         pendingReminderDoses.map { "${it.medicine.id}:${it.status}" },
     ) {
         if (reminderScheduledAt != null && pendingReminderDoses.isEmpty()) {
+            dismissedReminderTimestamps.remove(reminderScheduledAt)
             finishReminder(reminderScheduledAt)
         }
     }
@@ -235,6 +239,10 @@ fun PillsTrackerApp(
                                 userName = userProfile.name,
                                 onShowMedicines = { showMedicines(null) },
                                 onOpenMedicine = { showMedicines(it.id) },
+                                onEditMedicine = {
+                                    editedMedicine = it
+                                    navigate(AppDestination.MedicineEditor)
+                                },
                             )
 
                             MainSection.MEDICINES -> MedicinesScreen(
@@ -300,6 +308,10 @@ fun PillsTrackerApp(
                     finishReminder(reminderScheduledAt)
                 },
                 onDismiss = {
+                    if (reminderScheduledAt !in dismissedReminderTimestamps) {
+                        dismissedReminderTimestamps.add(reminderScheduledAt)
+                    }
+                    scheduler.dismissDoseNotification(reminderScheduledAt)
                     finishReminder(reminderScheduledAt)
                 },
             )
