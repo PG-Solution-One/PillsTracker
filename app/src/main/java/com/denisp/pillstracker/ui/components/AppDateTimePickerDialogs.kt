@@ -42,6 +42,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
@@ -116,6 +121,14 @@ fun AppDatePickerDialog(
     val focusManager = LocalFocusManager.current
     val selectedCalendarDate = state.selectedDateMillis?.let(::utcMillisToLocalDate)
     val confirmEnabled = inputDateInRange != null
+    val submitDateInput: () -> Unit = {
+        inputDateInRange?.let { date ->
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+            onDateSelected(date)
+        }
+        Unit
+    }
 
     LaunchedEffect(state.selectedDateMillis, inputFocused) {
         if (!inputFocused) {
@@ -189,6 +202,14 @@ fun AppDatePickerDialog(
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp, vertical = 8.dp)
                             .testTag(DATE_INPUT_TAG)
+                            .onPreviewKeyEvent { event ->
+                                if (event.key == Key.Enter && event.type == KeyEventType.KeyDown) {
+                                    submitDateInput()
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
                             .onFocusChanged { focus ->
                                 inputFocused = focus.isFocused
                                 if (focus.isFocused) {
@@ -210,10 +231,7 @@ fun AppDatePickerDialog(
                             imeAction = ImeAction.Done,
                         ),
                         keyboardActions = KeyboardActions(
-                            onDone = {
-                                focusManager.clearFocus(force = true)
-                                keyboardController?.hide()
-                            },
+                            onDone = { submitDateInput() },
                         ),
                     )
                     DatePicker(
@@ -250,9 +268,7 @@ fun AppDatePickerDialog(
                             Text(stringResource(R.string.cancel))
                         }
                         TextButton(
-                            onClick = {
-                                inputDateInRange?.let(onDateSelected)
-                            },
+                            onClick = submitDateInput,
                             modifier = Modifier.heightIn(min = 48.dp),
                             enabled = confirmEnabled,
                         ) {
@@ -297,6 +313,14 @@ fun AppTimePickerDialog(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val submitTimeInput: () -> Unit = {
+        inputTime?.let { minuteOfDay ->
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+            onTimeSelected(minuteOfDay)
+        }
+        Unit
+    }
 
     LaunchedEffect(state.hour, state.minute, inputFocused) {
         if (!inputFocused) {
@@ -359,6 +383,14 @@ fun AppTimePickerDialog(
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp, vertical = 8.dp)
                             .testTag(TIME_INPUT_TAG)
+                            .onPreviewKeyEvent { event ->
+                                if (event.key == Key.Enter && event.type == KeyEventType.KeyDown) {
+                                    submitTimeInput()
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
                             .onFocusChanged { focus ->
                                 inputFocused = focus.isFocused
                                 if (focus.isFocused) {
@@ -390,10 +422,7 @@ fun AppTimePickerDialog(
                             imeAction = ImeAction.Done,
                         ),
                         keyboardActions = KeyboardActions(
-                            onDone = {
-                                focusManager.clearFocus(force = true)
-                                keyboardController?.hide()
-                            },
+                            onDone = { submitTimeInput() },
                         ),
                     )
                     TimePicker(
@@ -421,7 +450,7 @@ fun AppTimePickerDialog(
                     Text(stringResource(R.string.cancel))
                 }
                 TextButton(
-                    onClick = { inputTime?.let(onTimeSelected) },
+                    onClick = submitTimeInput,
                     modifier = Modifier.heightIn(min = 48.dp),
                     enabled = inputTime != null,
                 ) {

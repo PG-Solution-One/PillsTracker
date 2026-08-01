@@ -11,11 +11,13 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -69,6 +71,58 @@ class AppDateTimePickerDialogsUiTest {
         composeRule
             .onNodeWithTag(TIME_DIAL_TAG)
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun keyboardDoneConfirmsManuallyEnteredDate() {
+        val selectedDate = AtomicReference<LocalDate>()
+        composeRule.setContent {
+            MaterialTheme {
+                AppDatePickerDialog(
+                    title = "Дата начала курса",
+                    selectedDate = null,
+                    onDismiss = {},
+                    onDateSelected = selectedDate::set,
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithTag(DATE_INPUT_TAG)
+            .performTextReplacement("15082026")
+        composeRule
+            .onNodeWithTag(DATE_INPUT_TAG)
+            .performImeAction()
+
+        composeRule.runOnIdle {
+            assertEquals(LocalDate.of(2026, 8, 15), selectedDate.get())
+        }
+    }
+
+    @Test
+    fun keyboardDoneConfirmsManuallyEnteredTime() {
+        val selectedMinute = AtomicInteger(-1)
+        composeRule.setContent {
+            MaterialTheme {
+                AppTimePickerDialog(
+                    title = "Время приёма",
+                    initialMinuteOfDay = 8 * 60 + 30,
+                    onDismiss = {},
+                    onTimeSelected = selectedMinute::set,
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithTag(TIME_INPUT_TAG)
+            .performTextReplacement("2145")
+        composeRule
+            .onNodeWithTag(TIME_INPUT_TAG)
+            .performImeAction()
+
+        composeRule.runOnIdle {
+            assertEquals(21 * 60 + 45, selectedMinute.get())
+        }
     }
 
     @Test
