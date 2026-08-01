@@ -34,16 +34,11 @@
     <string name="cancel">Отмена</string>
     <string name="clear">Очистить</string>
     <string name="birth_date">Дата рождения</string>
-    <string name="open_calendar">Открыть календарь</string>
-    <string name="enter_date_manually">Ввести дату вручную</string>
-    <string name="open_clock">Открыть циферблат</string>
-    <string name="enter_time_manually">Ввести время вручную</string>
     <string name="date">Дата</string>
     <string name="date_input_placeholder">ДД.ММ.ГГГГ</string>
     <string name="invalid_date">Введите корректную дату</string>
     <string name="date_out_of_range">Дата находится вне доступного периода</string>
-    <string name="hours">Часы</string>
-    <string name="minutes">Минуты</string>
-    <string name="hours_placeholder">ЧЧ</string>
-    <string name="minutes_placeholder">ММ</string>
+    <string name="time">Время</string>
+    <string name="time_input_placeholder">ЧЧ:ММ</string>
+    <string name="invalid_time">Введите корректное время</string>
 </resources>

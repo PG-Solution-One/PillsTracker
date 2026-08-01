@@ -56,20 +56,28 @@ class AppDateTimePickerDialogsTest {
     }
 
     @Test
-    fun `new time digits replace an existing value`() {
-        assertEquals("21", normalizeTimeInput("0821"))
-        assertEquals("45", normalizeTimeInput("3045"))
-        assertEquals("21", replacementInput(previous = "08", changed = "0821"))
-        assertEquals("2", replacementInput(previous = "08", changed = "082"))
+    fun `time input uses 24 hour mask`() {
+        assertEquals("2", formatTimeInput("2"))
+        assertEquals("21", formatTimeInput("21"))
+        assertEquals("21:4", formatTimeInput("214"))
+        assertEquals("21:45", formatTimeInput("21-45"))
     }
 
     @Test
-    fun `time input accepts only existing hours and minutes`() {
-        assertEquals("00", validatedTimeInput("00", maxExclusive = 24))
-        assertEquals("23", validatedTimeInput("23", maxExclusive = 24))
-        assertNull(validatedTimeInput("24", maxExclusive = 24))
-        assertEquals("59", validatedTimeInput("59", maxExclusive = 60))
-        assertNull(validatedTimeInput("60", maxExclusive = 60))
-        assertNull(validatedTimeInput("99", maxExclusive = 60))
+    fun `time input parses only valid complete time`() {
+        assertEquals(0, parseTimeInput("00:00"))
+        assertEquals(21 * 60 + 45, parseTimeInput("21:45"))
+        assertEquals(23 * 60 + 59, parseTimeInput("2359"))
+        assertNull(parseTimeInput("21:4"))
+        assertNull(parseTimeInput("24:00"))
+        assertNull(parseTimeInput("12:60"))
+    }
+
+    @Test
+    fun `first edit can replace existing combined time`() {
+        assertEquals(
+            "2145",
+            replacementInput(previous = "08:30", changed = "08:302145"),
+        )
     }
 }

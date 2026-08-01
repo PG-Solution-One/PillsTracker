@@ -1,5 +1,6 @@
 package com.denisp.pillstracker.ui.feature.today
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Row
@@ -17,11 +18,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.IntakeStatus
+import com.denisp.pillstracker.model.InterfaceMode
 import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.ScheduledDose
 import com.denisp.pillstracker.model.displayAmount
 import com.denisp.pillstracker.ui.components.MedicineAppearance
 import com.denisp.pillstracker.ui.components.SwipeableIntakeCard
+import com.denisp.pillstracker.ui.theme.AppPrimaryButton
+import com.denisp.pillstracker.ui.theme.AppSecondaryButton
+import com.denisp.pillstracker.ui.theme.AppSpacing
+import com.denisp.pillstracker.ui.theme.LocalInterfaceMode
 
 @Composable
 internal fun TodayDoseCard(
@@ -53,6 +59,7 @@ internal fun LowStockMedicineCard(
     onOpen: () -> Unit,
     onLongPress: () -> Unit,
 ) {
+    val simplified = LocalInterfaceMode.current == InterfaceMode.SIMPLIFIED
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -60,19 +67,49 @@ internal fun LowStockMedicineCard(
         color = MaterialTheme.colorScheme.errorContainer,
         shape = RoundedCornerShape(16.dp),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            MedicineDot(medicine)
-            Column(Modifier.padding(start = 12.dp)) {
-                Text("Пора купить ${medicine.name}", fontWeight = FontWeight.SemiBold)
-                Text(
-                    "Осталось ${medicine.remaining.displayAmount()} шт.",
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                )
+        if (simplified) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(AppSpacing.Lg),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.Md),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    MedicineDot(medicine)
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .padding(start = AppSpacing.Md),
+                    ) {
+                        Text("Пора купить ${medicine.name}", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "Осталось ${medicine.remaining.displayAmount()} шт.",
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                }
+                AppSecondaryButton(
+                    onClick = onLongPress,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Действия с лекарством")
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                MedicineDot(medicine)
+                Column(Modifier.padding(start = 12.dp)) {
+                    Text("Пора купить ${medicine.name}", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Осталось ${medicine.remaining.displayAmount()} шт.",
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                }
             }
         }
     }
@@ -85,40 +122,73 @@ internal fun AsNeededMedicineCard(
     onOpen: () -> Unit,
     onLongPress: () -> Unit,
 ) {
+    val simplified = LocalInterfaceMode.current == InterfaceMode.SIMPLIFIED
     Card(
         modifier = Modifier.combinedClickable(onClick = onOpen, onLongClick = onLongPress),
         shape = RoundedCornerShape(18.dp),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            MedicineDot(medicine)
+        if (simplified) {
             Column(
-                Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(AppSpacing.Lg),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.Md),
             ) {
-                Text(
-                    text = medicine.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    "${medicine.dosage} · " +
-                        "${medicine.tabletsPerIntake.displayAmount()} шт.",
-                )
-                if (medicine.trackStock) {
-                    Text(
-                        "Осталось ${medicine.remaining.displayAmount()} шт.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    MedicineDot(medicine)
+                    MedicineSummary(medicine = medicine, modifier = Modifier.weight(1f))
+                }
+                AppPrimaryButton(
+                    onClick = onTaken,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Принять сейчас")
+                }
+                AppSecondaryButton(
+                    onClick = onLongPress,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Действия с лекарством")
                 }
             }
-            Button(onClick = onTaken) { Text("Принять") }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                MedicineDot(medicine)
+                MedicineSummary(medicine = medicine, modifier = Modifier.weight(1f))
+                Button(onClick = onTaken) { Text("Принять") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MedicineSummary(
+    medicine: Medicine,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier.padding(horizontal = 12.dp),
+    ) {
+        Text(
+            text = medicine.name,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            "${medicine.dosage} · " +
+                "${medicine.tabletsPerIntake.displayAmount()} шт.",
+        )
+        if (medicine.trackStock) {
+            Text(
+                "Осталось ${medicine.remaining.displayAmount()} шт.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }

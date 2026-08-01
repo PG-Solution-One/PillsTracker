@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.denisp.pillstracker.ui.theme.LocalAppUiMetrics
 
 internal enum class MainSection(val title: String) {
     TODAY("Главная"),
@@ -73,15 +74,16 @@ internal fun MainNavigationBar(
 @Composable
 private fun MedicineNavigationIcon(contentDescription: String) {
     val color = LocalContentColor.current
+    val iconSize = LocalAppUiMetrics.current.navigationIconSize
     Canvas(
         modifier = Modifier
-            .size(28.dp)
+            .size(iconSize)
             .rotate(-32f)
             .semantics { this.contentDescription = contentDescription },
     ) {
-        val strokeWidth = 2.2.dp.toPx()
-        val capsuleWidth = 25.dp.toPx()
-        val capsuleHeight = 13.dp.toPx()
+        val strokeWidth = size.minDimension * 0.08f
+        val capsuleWidth = size.width * 0.89f
+        val capsuleHeight = size.height * 0.46f
         val left = (size.width - capsuleWidth) / 2f
         val top = (size.height - capsuleHeight) / 2f
 
@@ -106,9 +108,10 @@ private fun MainSectionIcon(
     imageVector: ImageVector,
     contentDescription: String,
 ) {
+    val iconSize = LocalAppUiMetrics.current.navigationIconSize
     Icon(
         imageVector = imageVector,
         contentDescription = contentDescription,
-        modifier = Modifier.size(28.dp),
+        modifier = Modifier.size(iconSize),
     )
 }

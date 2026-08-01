@@ -204,12 +204,16 @@ fun AppTextField(
 ) {
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val coroutineScope = rememberCoroutineScope()
+    val uiMetrics = LocalAppUiMetrics.current
 
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier
             .fillMaxWidth()
+            .then(
+                if (singleLine) Modifier.heightIn(min = uiMetrics.fieldMinHeight) else Modifier,
+            )
             .bringIntoViewRequester(bringIntoViewRequester)
             .onFocusChanged { focusState ->
                 if (focusState.isFocused) {
@@ -252,6 +256,7 @@ fun AppPickerField(
     leadingIcon: ImageVector? = null,
     enabled: Boolean = true,
 ) {
+    val uiMetrics = LocalAppUiMetrics.current
     AppSurfaceCard(
         modifier = modifier.fillMaxWidth(),
         elevated = true,
@@ -260,6 +265,7 @@ fun AppPickerField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(min = uiMetrics.fieldMinHeight)
                 .padding(horizontal = AppSpacing.Lg, vertical = AppSpacing.Md),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.Md),
@@ -299,9 +305,10 @@ fun AppPrimaryButton(
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val uiMetrics = LocalAppUiMetrics.current
     Button(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 52.dp),
+        modifier = modifier.heightIn(min = uiMetrics.primaryButtonMinHeight),
         enabled = enabled,
         shape = RoundedCornerShape(AppRadii.Control),
         elevation = ButtonDefaults.buttonElevation(
@@ -319,9 +326,10 @@ fun AppSecondaryButton(
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val uiMetrics = LocalAppUiMetrics.current
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 52.dp),
+        modifier = modifier.heightIn(min = uiMetrics.primaryButtonMinHeight),
         enabled = enabled,
         shape = RoundedCornerShape(AppRadii.Control),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)),
