@@ -212,8 +212,10 @@ fun MedicineEditorScreen(
                     .widthIn(max = 760.dp)
                     .verticalScroll(editorScrollState)
                     .padding(
-                        horizontal = AppSpacing.Screen,
-                        vertical = AppSpacing.Lg,
+                        start = AppSpacing.Screen,
+                        top = AppSpacing.Lg,
+                        end = AppSpacing.Screen,
+                        bottom = if (isImeVisible) AppSpacing.Sm else AppSpacing.Lg,
                     ),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.Lg),
             ) {
@@ -354,7 +356,9 @@ fun MedicineEditorScreen(
                         )
                     }
                 }
-                Spacer(Modifier.height(AppSpacing.Xl))
+                if (!isImeVisible) {
+                    Spacer(Modifier.height(AppSpacing.Xl))
+                }
             }
         }
     }
