@@ -74,8 +74,8 @@ class MedicineEditorFormStateTest {
         assertEquals(initial.scheduleKind, restored.scheduleKind)
         assertEquals(initial.state, restored.state)
         assertEquals(
-            initial.times.map { it.minuteOfDay to it.dayMask },
-            restored.times.map { it.minuteOfDay to it.dayMask },
+            initial.times,
+            restored.times,
         )
     }
 
@@ -110,6 +110,32 @@ class MedicineEditorFormStateTest {
         assertEquals(emptyList<ScheduleTime>(), draft.toMedicine(initial).times)
     }
 
+    @Test
+    fun `overlapping times are rejected`() {
+        val draft = MedicineEditorDraft.from(medicine()).copy(
+            scheduleKind = ScheduleKind.SELECTED_DAYS,
+            times = listOf(
+                EditableScheduleTime(8 * 60, 0b0000011),
+                EditableScheduleTime(8 * 60, 0b0000010),
+            ),
+        )
+
+        assertEquals(3, draft.firstInvalidStep())
+    }
+
+    @Test
+    fun `same time on disjoint selected days is allowed`() {
+        val draft = MedicineEditorDraft.from(medicine()).copy(
+            scheduleKind = ScheduleKind.SELECTED_DAYS,
+            times = listOf(
+                EditableScheduleTime(8 * 60, 0b0000001),
+                EditableScheduleTime(8 * 60, 0b0000010),
+            ),
+        )
+
+        assertNull(draft.firstInvalidStep())
+    }
+
     private fun medicine() = Medicine(
         id = 42,
         name = "Витамин D",
@@ -136,6 +162,7 @@ class MedicineEditorFormStateTest {
                 medicineId = 42,
                 minuteOfDay = 8 * 60,
                 dayMask = ALL_DAYS_MASK xor 1,
+                effectiveFromMillis = 123_456_789L,
             ),
         ),
     )

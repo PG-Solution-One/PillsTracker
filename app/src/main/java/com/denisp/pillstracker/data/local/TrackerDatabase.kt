@@ -5,6 +5,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import androidx.core.database.sqlite.transaction
+import com.denisp.pillstracker.domain.ScheduleCalculator
 import com.denisp.pillstracker.model.IntakeRecord
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.DosageUnit
@@ -13,7 +14,10 @@ import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.MedicineState
 import com.denisp.pillstracker.model.PillShape
 import com.denisp.pillstracker.model.ScheduleTime
+import com.denisp.pillstracker.model.dayMask
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 
 class TrackerDatabase(context: Context) :
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
@@ -52,6 +56,7 @@ class TrackerDatabase(context: Context) :
                 medicine_id INTEGER NOT NULL,
                 minute_of_day INTEGER NOT NULL,
                 day_mask INTEGER NOT NULL,
+                effective_from_millis INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY(medicine_id) REFERENCES medicines(id) ON DELETE CASCADE
             )
             """.trimIndent(),
@@ -122,6 +127,11 @@ class TrackerDatabase(context: Context) :
         if (oldVersion < 5) {
             database.execSQL(
                 "ALTER TABLE medicines ADD COLUMN track_stock INTEGER NOT NULL DEFAULT 1",
+            )
+        }
+        if (oldVersion < 6) {
+            database.execSQL(
+                "ALTER TABLE schedule_times ADD COLUMN effective_from_millis INTEGER NOT NULL DEFAULT 0",
             )
         }
     }
@@ -214,9 +224,18 @@ class TrackerDatabase(context: Context) :
         }
 
     @Synchronized
-    fun saveMedicine(medicine: Medicine): Long {
+    fun saveMedicine(
+        medicine: Medicine,
+        savedAt: Long = System.currentTimeMillis(),
+        zoneId: ZoneId = ZoneId.systemDefault(),
+    ): Long {
         val database = writableDatabase
         return database.transaction {
+            val previousTimes = if (medicine.id == 0L) {
+                emptyList()
+            } else {
+                loadScheduleTimes(database).filter { it.medicineId == medicine.id }
+            }
             val medicineId = if (medicine.id == 0L) {
                 database.insertOrThrow("medicines", null, medicineValues(medicine))
             } else {
@@ -228,20 +247,101 @@ class TrackerDatabase(context: Context) :
                 )
                 medicine.id
             }
-            database.delete("schedule_times", "medicine_id = ?", arrayOf(medicineId.toString()))
+            val previousById = previousTimes.associateBy { it.id }
+            val retainedIds = mutableSetOf<Long>()
+            val today = Instant.ofEpochMilli(savedAt).atZone(zoneId).toLocalDate()
+            val dayStart = today.atStartOfDay(zoneId).toInstant().toEpochMilli()
+            val todayMask = dayMask(today.dayOfWeek.value)
+            val medicineScheduledToday = ScheduleCalculator.isScheduledOn(medicine, today)
+
             medicine.times.forEach { schedule ->
-                database.insertOrThrow(
-                    "schedule_times",
-                    null,
-                    ContentValues().apply {
-                        put("medicine_id", medicineId)
-                        put("minute_of_day", schedule.minuteOfDay)
-                        put("day_mask", schedule.dayMask)
-                    },
-                )
+                val previous = previousById[schedule.id]
+                    ?.takeIf { it.medicineId == medicineId }
+                val changed = previous != null && (
+                    previous.minuteOfDay != schedule.minuteOfDay ||
+                        previous.dayMask != schedule.dayMask
+                    )
+                val replacesToday = previous?.let { oldSchedule ->
+                    changed &&
+                        oldSchedule.dayMask and todayMask != 0 &&
+                        schedule.dayMask and todayMask != 0 &&
+                        medicineScheduledToday &&
+                        dayStart + oldSchedule.minuteOfDay * 60_000L >=
+                        oldSchedule.effectiveFromMillis
+                } == true
+                val effectiveFrom = when {
+                    previous == null -> savedAt
+                    !changed -> previous.effectiveFromMillis
+                    replacesToday -> dayStart
+                    else -> savedAt
+                }
+                val values = ContentValues().apply {
+                    put("medicine_id", medicineId)
+                    put("minute_of_day", schedule.minuteOfDay)
+                    put("day_mask", schedule.dayMask)
+                    put("effective_from_millis", effectiveFrom)
+                }
+                val scheduleId = if (previous == null) {
+                    database.insertOrThrow("schedule_times", null, values)
+                } else {
+                    database.update(
+                        "schedule_times",
+                        values,
+                        "id = ? AND medicine_id = ?",
+                        arrayOf(previous.id.toString(), medicineId.toString()),
+                    )
+                    previous.id
+                }
+                retainedIds += scheduleId
+
+                if (
+                    replacesToday &&
+                    previous.minuteOfDay != schedule.minuteOfDay
+                ) {
+                    moveTodayIntakeRecord(
+                        database = database,
+                        medicineId = medicineId,
+                        oldScheduledAt = dayStart + previous.minuteOfDay * 60_000L,
+                        newScheduledAt = dayStart + schedule.minuteOfDay * 60_000L,
+                    )
+                }
             }
+            previousTimes
+                .filter { it.id !in retainedIds }
+                .forEach { previous ->
+                    database.delete(
+                        "schedule_times",
+                        "id = ? AND medicine_id = ?",
+                        arrayOf(previous.id.toString(), medicineId.toString()),
+                    )
+                }
             medicineId
         }
+    }
+
+    private fun moveTodayIntakeRecord(
+        database: SQLiteDatabase,
+        medicineId: Long,
+        oldScheduledAt: Long,
+        newScheduledAt: Long,
+    ) {
+        val targetExists = database.query(
+            "intake_records",
+            arrayOf("id"),
+            "medicine_id = ? AND scheduled_at = ?",
+            arrayOf(medicineId.toString(), newScheduledAt.toString()),
+            null,
+            null,
+            null,
+        ).use { it.moveToFirst() }
+        if (targetExists) return
+
+        database.update(
+            "intake_records",
+            ContentValues().apply { put("scheduled_at", newScheduledAt) },
+            "medicine_id = ? AND scheduled_at = ?",
+            arrayOf(medicineId.toString(), oldScheduledAt.toString()),
+        )
     }
 
     @Synchronized
@@ -336,6 +436,9 @@ class TrackerDatabase(context: Context) :
                             medicineId = cursor.getLong(cursor.getColumnIndexOrThrow("medicine_id")),
                             minuteOfDay = cursor.getInt(cursor.getColumnIndexOrThrow("minute_of_day")),
                             dayMask = cursor.getInt(cursor.getColumnIndexOrThrow("day_mask")),
+                            effectiveFromMillis = cursor.getLong(
+                                cursor.getColumnIndexOrThrow("effective_from_millis"),
+                            ),
                         ),
                     )
                 }
@@ -370,6 +473,6 @@ class TrackerDatabase(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "pills_tracker.db"
-        private const val DATABASE_VERSION = 5
+        private const val DATABASE_VERSION = 6
     }
 }

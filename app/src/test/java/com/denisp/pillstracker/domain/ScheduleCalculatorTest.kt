@@ -94,6 +94,59 @@ class ScheduleCalculatorTest {
         assertEquals(listOf(IntakeStatus.TAKEN, IntakeStatus.PENDING), doses.map { it.status })
     }
 
+    @Test
+    fun `dose before schedule activation is not created`() {
+        val date = LocalDate.of(2026, 7, 27)
+        val zone = ZoneId.of("Europe/Moscow")
+        val scheduledAt = date.atTime(8, 0).atZone(zone).toInstant().toEpochMilli()
+        val medicine = medicine(
+            times = listOf(
+                ScheduleTime(
+                    minuteOfDay = 8 * 60,
+                    effectiveFromMillis = scheduledAt + 2 * 60 * 60 * 1000,
+                ),
+            ),
+        )
+
+        val doses = ScheduleCalculator.dosesForDate(
+            medicines = listOf(medicine),
+            records = emptyList(),
+            date = date,
+            zoneId = zone,
+        )
+
+        assertTrue(doses.isEmpty())
+    }
+
+    @Test
+    fun `first future occurrence after activation is created`() {
+        val activationDate = LocalDate.of(2026, 7, 27)
+        val nextDate = activationDate.plusDays(1)
+        val zone = ZoneId.of("Europe/Moscow")
+        val effectiveFrom = activationDate.atTime(10, 0).atZone(zone).toInstant().toEpochMilli()
+        val medicine = medicine(
+            times = listOf(
+                ScheduleTime(
+                    minuteOfDay = 8 * 60,
+                    effectiveFromMillis = effectiveFrom,
+                ),
+            ),
+        )
+
+        val doses = ScheduleCalculator.dosesForDate(
+            medicines = listOf(medicine),
+            records = emptyList(),
+            date = nextDate,
+            zoneId = zone,
+        )
+
+        assertEquals(1, doses.size)
+        assertEquals(
+            nextDate.atTime(8, 0).atZone(zone).toInstant().toEpochMilli(),
+            doses.single().scheduledAt,
+        )
+    }
+
     private fun medicine(
         startDate: LocalDate = LocalDate.of(2026, 7, 20),
         endDate: LocalDate? = null,

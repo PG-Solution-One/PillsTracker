@@ -153,6 +153,12 @@ internal fun TimeStep(
                 )
             }
         } else {
+            if (showError && hasOverlappingScheduleTimes(scheduleKind, times)) {
+                Text(
+                    "Такое время уже добавлено для тех же дней",
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
             times.forEachIndexed { index, schedule ->
                 AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
                     Column(

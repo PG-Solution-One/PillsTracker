@@ -12,6 +12,7 @@ data class ScheduleTime(
     val medicineId: Long = 0,
     val minuteOfDay: Int,
     val dayMask: Int = ALL_DAYS_MASK,
+    val effectiveFromMillis: Long = 0,
 )
 
 const val ALL_DAYS_MASK = 0b1111111

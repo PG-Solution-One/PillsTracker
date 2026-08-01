@@ -58,6 +58,31 @@ internal class ReminderStateStore(context: Context) {
         preferences.edit { remove(KEY_TRACKED_TIMESTAMPS) }
     }
 
+    fun activeReminderTimestamps(): Set<Long> =
+        preferences.getStringSet(KEY_ACTIVE_REMINDERS, emptySet())
+            .orEmpty()
+            .mapNotNull(String::toLongOrNull)
+            .toSet()
+
+    fun activateReminder(scheduledAt: Long) {
+        val updated = preferences.getStringSet(KEY_ACTIVE_REMINDERS, emptySet())
+            .orEmpty()
+            .toMutableSet()
+            .apply { add(scheduledAt.toString()) }
+        preferences.edit { putStringSet(KEY_ACTIVE_REMINDERS, updated) }
+    }
+
+    fun deactivateReminder(scheduledAt: Long) {
+        val updated = preferences.getStringSet(KEY_ACTIVE_REMINDERS, emptySet())
+            .orEmpty()
+            .toMutableSet()
+            .apply { remove(scheduledAt.toString()) }
+        preferences.edit { putStringSet(KEY_ACTIVE_REMINDERS, updated) }
+    }
+
+    fun isReminderActive(scheduledAt: Long): Boolean =
+        scheduledAt in activeReminderTimestamps() || loadCycle(scheduledAt) != null
+
     private fun cycleStartedAtKey(scheduledAt: Long) = "cycle_started_at_$scheduledAt"
 
     private fun nextStageKey(scheduledAt: Long) = "next_stage_$scheduledAt"
@@ -65,6 +90,7 @@ internal class ReminderStateStore(context: Context) {
     private companion object {
         const val PREFERENCES_NAME = "reminder_state"
         const val KEY_TRACKED_TIMESTAMPS = "tracked_timestamps"
+        const val KEY_ACTIVE_REMINDERS = "active_reminders"
     }
 }
 

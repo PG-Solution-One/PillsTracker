@@ -3,7 +3,22 @@ package com.denisp.pillstracker.ui.feature.editor
 internal data class EditableScheduleTime(
     val minuteOfDay: Int,
     val dayMask: Int,
+    val id: Long = 0,
+    val effectiveFromMillis: Long = 0,
 )
+
+internal fun hasOverlappingScheduleTimes(
+    scheduleKind: com.denisp.pillstracker.model.ScheduleKind,
+    times: List<EditableScheduleTime>,
+): Boolean = times.indices.any { firstIndex ->
+    ((firstIndex + 1) until times.size).any { secondIndex ->
+        val first = times[firstIndex]
+        val second = times[secondIndex]
+        first.minuteOfDay == second.minuteOfDay &&
+            (scheduleKind != com.denisp.pillstracker.model.ScheduleKind.SELECTED_DAYS ||
+                first.dayMask and second.dayMask != 0)
+    }
+}
 
 internal enum class CourseEndMode(val title: String) {
     WITHOUT_END("Без окончания"),
