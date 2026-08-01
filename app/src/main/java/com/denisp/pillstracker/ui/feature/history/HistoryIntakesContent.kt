@@ -38,6 +38,7 @@ import com.denisp.pillstracker.model.ScheduledDose
 import com.denisp.pillstracker.model.TrackerSnapshot
 import com.denisp.pillstracker.model.displayAmount
 import com.denisp.pillstracker.notifications.NotificationScheduler
+import com.denisp.pillstracker.ui.theme.AppSpacing
 import com.denisp.pillstracker.ui.FullDateFormatter
 import com.denisp.pillstracker.ui.RussianLocale
 import com.denisp.pillstracker.ui.components.MedicineAppearance
@@ -81,7 +82,7 @@ internal fun HistoryIntakesContent(
             end = 20.dp,
             bottom = 40.dp,
         ),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.Lg),
     ) {
         item {
             AppSurfaceCard(modifier = Modifier.fillMaxWidth(), elevated = true) {
@@ -269,7 +270,7 @@ private fun AsNeededIntakeCard(
                 )
             }
             Button(onClick = onTaken) {
-                Text("Принял")
+                Text("Принять")
             }
         }
     }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,6 +27,7 @@ import com.denisp.pillstracker.model.TrackerSnapshot
 import com.denisp.pillstracker.notifications.NotificationScheduler
 import com.denisp.pillstracker.ui.theme.AppEmptyState
 import com.denisp.pillstracker.ui.theme.AppScreenHeader
+import com.denisp.pillstracker.ui.theme.AppSpacing
 
 @Composable
 fun MedicinesScreen(
@@ -46,24 +48,26 @@ fun MedicinesScreen(
                 .fillMaxSize()
                 .widthIn(max = 760.dp),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                start = 20.dp,
-                top = 20.dp,
-                end = 20.dp,
+                start = AppSpacing.Screen,
+                top = AppSpacing.Xl,
+                end = AppSpacing.Screen,
                 bottom = 100.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.Lg),
         ) {
             item { AppScreenHeader("Мои лекарства") }
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.Sm),
                 ) {
                     MedicineState.entries.forEach { state ->
                         FilterChip(
                             selected = selectedState == state,
                             onClick = { selectedState = state },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 48.dp),
                             label = {
                                 Text(
                                     text = state.filterTitle(),

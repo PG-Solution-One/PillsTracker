@@ -43,7 +43,7 @@ internal fun StepHeader(currentStep: Int) {
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.Xs),
             ) {
                 editorSteps.indices.forEach { index ->
                     Box(

@@ -6,10 +6,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -36,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.ALL_DAYS_MASK
@@ -61,6 +64,8 @@ fun MedicineEditorScreen(
     onBack: () -> Unit,
     onSave: (Medicine) -> Unit,
 ) {
+    val density = LocalDensity.current
+    val isImeVisible = WindowInsets.ime.getBottom(density) > 0
     val isEditing = initialMedicine != null
     val initialDraft = remember(initialMedicine) { MedicineEditorDraft.from(initialMedicine) }
     var draft by remember(initialMedicine) { mutableStateOf(initialDraft) }
@@ -165,30 +170,32 @@ fun MedicineEditorScreen(
             )
         },
         bottomBar = {
-            if (isEditing) {
-                EditSaveNavigation(
-                    enabled = hasChanges,
-                    onSave = ::save,
-                )
-            } else {
-                EditorNavigation(
-                    currentStep = currentStep,
-                    stepsCount = editorSteps.size,
-                    onPrevious = {
-                        if (currentStep > 0) {
-                            showValidation = false
-                            currentStep--
-                        }
-                    },
-                    onNext = {
-                        if (draft.isStepValid(currentStep)) {
-                            showValidation = false
-                            if (currentStep == editorSteps.lastIndex) save() else currentStep++
-                        } else {
-                            showValidation = true
-                        }
-                    },
-                )
+            if (!isImeVisible) {
+                if (isEditing) {
+                    EditSaveNavigation(
+                        enabled = hasChanges,
+                        onSave = ::save,
+                    )
+                } else {
+                    EditorNavigation(
+                        currentStep = currentStep,
+                        stepsCount = editorSteps.size,
+                        onPrevious = {
+                            if (currentStep > 0) {
+                                showValidation = false
+                                currentStep--
+                            }
+                        },
+                        onNext = {
+                            if (draft.isStepValid(currentStep)) {
+                                showValidation = false
+                                if (currentStep == editorSteps.lastIndex) save() else currentStep++
+                            } else {
+                                showValidation = true
+                            }
+                        },
+                    )
+                }
             }
         },
     ) { padding ->

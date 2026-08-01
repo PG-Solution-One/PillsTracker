@@ -38,7 +38,7 @@ internal fun MedicineColorPicker(
         colors.forEach { color ->
             Box(
                 modifier = Modifier
-                    .size(42.dp)
+                    .size(48.dp)
                     .background(
                         if (color == selectedColor) {
                             MaterialTheme.colorScheme.primary

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.ui.RussianLocale
 import com.denisp.pillstracker.ui.theme.AppDashboardCard
 import com.denisp.pillstracker.ui.theme.AppSurfaceCard
+import com.denisp.pillstracker.ui.theme.AppSpacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
@@ -84,8 +85,8 @@ internal fun HistorySummaryCard(summary: HistorySummary) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(AppSpacing.Xl),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.Lg),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

@@ -20,6 +20,7 @@ import com.denisp.pillstracker.model.displayAmount
 import com.denisp.pillstracker.ui.asTime
 import com.denisp.pillstracker.ui.components.MedicineAppearance
 import com.denisp.pillstracker.ui.theme.AppSurfaceCard
+import com.denisp.pillstracker.ui.theme.AppSpacing
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -39,7 +40,7 @@ internal fun MedicineCatalogCard(
         elevated = true,
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.padding(AppSpacing.Xl),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {

@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.ui.theme.AppStatusColors
+import com.denisp.pillstracker.ui.theme.AppSpacing
 
 @Composable
 fun IntakeStatusControls(
@@ -31,7 +32,7 @@ fun IntakeStatusControls(
     subjectName: String? = null,
     onStatus: (IntakeStatus) -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.Xs)) {
             StatusIconButton(
                 selected = status == IntakeStatus.TAKEN,
                 enabled = takenEnabled,

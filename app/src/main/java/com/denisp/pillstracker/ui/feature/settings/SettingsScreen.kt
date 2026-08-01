@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,8 +25,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.denisp.pillstracker.model.ThemeMode
@@ -33,6 +37,7 @@ import com.denisp.pillstracker.model.UserProfile
 import com.denisp.pillstracker.ui.components.AgePickerField
 import com.denisp.pillstracker.ui.components.ProfileDatePickerDialog
 import com.denisp.pillstracker.ui.theme.AppScreenHeader
+import com.denisp.pillstracker.ui.theme.AppSpacing
 import com.denisp.pillstracker.ui.theme.AppSurfaceCard
 import com.denisp.pillstracker.ui.theme.AppTextField
 
@@ -44,6 +49,8 @@ fun SettingsScreen(
     onUserProfileChanged: (UserProfile) -> Unit,
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     var showBirthDatePicker by remember { mutableStateOf(false) }
     val exactAlarmsAvailable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
@@ -57,7 +64,7 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .widthIn(max = 760.dp),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.Lg),
         ) {
             item {
                 AppScreenHeader("Настройки")
@@ -67,8 +74,8 @@ fun SettingsScreen(
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                            .padding(AppSpacing.Xl),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.Md),
                     ) {
                         Text(
                             "Профиль",
@@ -89,6 +96,13 @@ fun SettingsScreen(
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(
                                 capitalization = KeyboardCapitalization.Words,
+                                imeAction = ImeAction.Done,
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    focusManager.clearFocus(force = true)
+                                    keyboardController?.hide()
+                                },
                             ),
                         )
                         AgePickerField(
@@ -104,8 +118,8 @@ fun SettingsScreen(
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                            .padding(AppSpacing.Xl),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.Md),
                     ) {
                         Text("Оформление", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                         ThemeModeSelector(
@@ -120,8 +134,8 @@ fun SettingsScreen(
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                            .padding(AppSpacing.Xl),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.Md),
                     ) {
                         Text(
                             "Точные напоминания",
@@ -157,7 +171,7 @@ fun SettingsScreen(
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .padding(18.dp),
+                            .padding(AppSpacing.Xl),
                     ) {
                         Text("Pills Tracker", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         Text(

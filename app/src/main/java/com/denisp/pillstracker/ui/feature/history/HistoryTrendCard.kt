@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.ui.theme.AppSurfaceCard
+import com.denisp.pillstracker.ui.theme.AppSpacing
 
 @Composable
 internal fun HistoryTrendCard(days: List<DayStatistics>) {
@@ -31,7 +32,7 @@ internal fun HistoryTrendCard(days: List<DayStatistics>) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
+                .padding(AppSpacing.Xl),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(

@@ -3,6 +3,7 @@ package com.denisp.pillstracker.ui.feature.medicines
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -13,7 +14,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.domain.StockRules
@@ -27,6 +31,8 @@ internal fun RefillMedicineDialog(
     onDismiss: () -> Unit,
     onSave: (Double) -> Unit,
 ) {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     var amount by remember(medicine.id) {
         mutableStateOf(medicine.packageSize.displayAmount())
     }
@@ -51,7 +57,19 @@ internal fun RefillMedicineDialog(
                     value = amount,
                     onValueChange = { amount = it },
                     label = "Добавить в остаток",
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            parsedAmount?.let {
+                                focusManager.clearFocus(force = true)
+                                keyboardController?.hide()
+                                onSave(it)
+                            }
+                        },
+                    ),
                 )
                 remainingAfterRefill?.let { newRemaining ->
                     Text(

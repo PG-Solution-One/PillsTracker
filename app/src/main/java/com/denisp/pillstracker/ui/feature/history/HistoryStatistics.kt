@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.data.TrackerRepository
 import com.denisp.pillstracker.model.TrackerSnapshot
+import com.denisp.pillstracker.ui.theme.AppSpacing
 import java.time.LocalDate
 
 @Composable
@@ -37,7 +38,7 @@ fun HistoryStatistics(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.Lg),
     ) {
         HistoryPeriodSelector(
             start = rangeStart,

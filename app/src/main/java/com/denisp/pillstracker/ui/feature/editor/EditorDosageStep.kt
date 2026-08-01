@@ -1,6 +1,7 @@
 package com.denisp.pillstracker.ui.feature.editor
 
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,10 +9,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import com.denisp.pillstracker.model.DosageUnit
 import com.denisp.pillstracker.ui.theme.AppTextField
 
@@ -31,6 +38,16 @@ internal fun DosageStep(
     onTrackStockChanged: (Boolean) -> Unit,
     showError: Boolean,
 ) {
+    val tabletsFocusRequester = remember { FocusRequester() }
+    val packageFocusRequester = remember { FocusRequester() }
+    val remainingFocusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val finishInput = {
+        focusManager.clearFocus(force = true)
+        keyboardController?.hide()
+    }
+
     EditorStepContent {
         EditorSectionCard(
             title = "Дозировка",
@@ -43,6 +60,10 @@ internal fun DosageStep(
                 placeholder = "Например, 60",
                 showError = showError,
                 allowZero = false,
+                imeAction = ImeAction.Next,
+                keyboardActions = KeyboardActions(
+                    onNext = { tabletsFocusRequester.requestFocus() },
+                ),
             )
             SelectionField(
                 label = "Единица измерения",
@@ -50,6 +71,7 @@ internal fun DosageStep(
                 options = DosageUnit.entries,
                 onSelected = onDosageUnitChanged,
                 title = DosageUnit::title,
+                columns = 3,
             )
             DecimalField(
                 value = tabletsPerIntake,
@@ -57,6 +79,12 @@ internal fun DosageStep(
                 label = "Таблеток за один приём",
                 showError = showError,
                 allowZero = false,
+                modifier = Modifier.focusRequester(tabletsFocusRequester),
+                imeAction = if (trackStock) ImeAction.Next else ImeAction.Done,
+                keyboardActions = KeyboardActions(
+                    onNext = { packageFocusRequester.requestFocus() },
+                    onDone = { finishInput() },
+                ),
             )
         }
 
@@ -86,6 +114,11 @@ internal fun DosageStep(
                     label = "Таблеток в полной упаковке",
                     showError = showError,
                     allowZero = false,
+                    modifier = Modifier.focusRequester(packageFocusRequester),
+                    imeAction = ImeAction.Next,
+                    keyboardActions = KeyboardActions(
+                        onNext = { remainingFocusRequester.requestFocus() },
+                    ),
                 )
                 DecimalField(
                     value = remaining,
@@ -93,6 +126,11 @@ internal fun DosageStep(
                     label = "Сейчас осталось",
                     showError = showError,
                     allowZero = true,
+                    modifier = Modifier.focusRequester(remainingFocusRequester),
+                    imeAction = ImeAction.Done,
+                    keyboardActions = KeyboardActions(
+                        onDone = { finishInput() },
+                    ),
                 )
                 Text(
                     "Напоминание о покупке появится, когда останется не больше трёх приёмов.",
@@ -111,6 +149,8 @@ private fun DecimalField(
     allowZero: Boolean,
     modifier: Modifier = Modifier,
     placeholder: String? = null,
+    imeAction: ImeAction = ImeAction.Done,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
 ) {
     val parsed = value.replace(',', '.').toDoubleOrNull()
     val invalid = parsed == null || if (allowZero) parsed < 0 else parsed <= 0
@@ -120,7 +160,11 @@ private fun DecimalField(
         label = label,
         modifier = modifier,
         placeholder = placeholder,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Decimal,
+            imeAction = imeAction,
+        ),
+        keyboardActions = keyboardActions,
         isError = showError && invalid,
         supportingText = if (showError && invalid) {
             {

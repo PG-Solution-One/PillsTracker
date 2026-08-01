@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DarkMode
@@ -19,6 +20,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.ThemeMode
+import com.denisp.pillstracker.ui.theme.AppSpacing
 
 @Composable
 internal fun ThemeModeSelector(
@@ -27,20 +29,22 @@ internal fun ThemeModeSelector(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.Sm),
     ) {
         ThemeMode.entries.forEach { mode ->
             FilterChip(
                 selected = selectedMode == mode,
                 onClick = { onModeSelected(mode) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 64.dp),
                 label = {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
+                            .padding(vertical = AppSpacing.Xs),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.Xs),
                     ) {
                         Icon(
                             imageVector = mode.icon(),

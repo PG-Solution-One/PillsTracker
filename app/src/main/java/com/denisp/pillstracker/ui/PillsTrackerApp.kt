@@ -3,7 +3,10 @@ package com.denisp.pillstracker.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
@@ -17,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -56,6 +60,8 @@ fun PillsTrackerApp(
     onThemeModeChanged: (ThemeMode) -> Unit,
     onUserProfileChanged: (UserProfile) -> Unit,
 ) {
+    val density = LocalDensity.current
+    val isImeVisible = WindowInsets.ime.getBottom(density) > 0
     val snapshot by repository.snapshot.collectAsStateWithLifecycle()
     val navigationStack = remember {
         mutableStateListOf<AppDestination>(
@@ -203,19 +209,23 @@ fun PillsTrackerApp(
                     modifier = Modifier.fillMaxSize(),
                     containerColor = MaterialTheme.colorScheme.background,
                     bottomBar = {
-                        MainNavigationBar(
-                            selectedSection = section,
-                            onSectionSelected = { item ->
-                                if (section != item) {
-                                    navigate(AppDestination.Section(item))
-                                }
-                            },
-                        )
+                        if (!isImeVisible) {
+                            MainNavigationBar(
+                                selectedSection = section,
+                                onSectionSelected = { item ->
+                                    if (section != item) {
+                                        navigate(AppDestination.Section(item))
+                                    }
+                                },
+                            )
+                        }
                     },
                     floatingActionButton = {
                         if (
-                            section == MainSection.TODAY ||
-                            section == MainSection.MEDICINES
+                            !isImeVisible && (
+                                section == MainSection.TODAY ||
+                                    section == MainSection.MEDICINES
+                                )
                         ) {
                             FloatingActionButton(
                                 onClick = {
@@ -230,7 +240,11 @@ fun PillsTrackerApp(
                         }
                     },
                 ) { padding ->
-                    Box(Modifier.padding(padding)) {
+                    Box(
+                        Modifier
+                            .padding(padding)
+                            .imePadding(),
+                    ) {
                         when (section) {
                             MainSection.TODAY -> TodayScreen(
                                 snapshot = snapshot,

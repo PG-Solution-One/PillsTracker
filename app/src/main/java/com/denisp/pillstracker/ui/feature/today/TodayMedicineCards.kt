@@ -118,7 +118,7 @@ internal fun AsNeededMedicineCard(
                     )
                 }
             }
-            Button(onClick = onTaken) { Text("Принял") }
+            Button(onClick = onTaken) { Text("Принять") }
         }
     }
 }

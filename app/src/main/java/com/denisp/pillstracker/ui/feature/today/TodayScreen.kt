@@ -33,6 +33,7 @@ import com.denisp.pillstracker.ui.components.rememberMinuteNow
 import com.denisp.pillstracker.ui.feature.medicines.MedicineQuickActionsHost
 import com.denisp.pillstracker.ui.theme.AppEmptyState
 import com.denisp.pillstracker.ui.theme.AppSectionHeader
+import com.denisp.pillstracker.ui.theme.AppSpacing
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -70,7 +71,7 @@ fun TodayScreen(
                 end = 20.dp,
                 bottom = 100.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.Lg),
         ) {
             item {
                 TodayGreetingHeader(

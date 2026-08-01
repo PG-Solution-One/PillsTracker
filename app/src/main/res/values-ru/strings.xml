@@ -5,9 +5,9 @@
     <string name="notification_channel_name">Приём лекарств</string>
     <string name="notification_channel_description">Напоминания о запланированном приёме</string>
     <string name="stock_channel_name">Запас лекарств</string>
-    <string name="notification_taken_single">Принято</string>
-    <string name="notification_taken_all">Приняты все</string>
-    <string name="notification_skip_all">Не принял</string>
+    <string name="notification_taken_single">Принять</string>
+    <string name="notification_taken_all">Принять все</string>
+    <string name="notification_skip_all">Пропустить</string>
     <string name="notification_choose">Выбрать</string>
     <string name="notification_choose_hint">Выберите лекарства по отдельности или примите все</string>
     <string name="notification_snooze">Отложить</string>

@@ -23,6 +23,7 @@ import com.denisp.pillstracker.model.ScheduledDose
 import com.denisp.pillstracker.domain.DoseTimingPolicy
 import com.denisp.pillstracker.ui.asTime
 import com.denisp.pillstracker.ui.theme.AppDashboardCard
+import com.denisp.pillstracker.ui.theme.AppSpacing
 
 @Composable
 internal fun TodayOverviewCard(
@@ -35,8 +36,11 @@ internal fun TodayOverviewCard(
     val isOverdue = nextDose?.let { DoseTimingPolicy.isOverdue(it, nowMillis) } == true
     AppDashboardCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.padding(
+                horizontal = AppSpacing.Md,
+                vertical = AppSpacing.Xl,
+            ),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.Lg),
         ) {
             Text(
                 text = "Сегодня",
@@ -65,7 +69,7 @@ internal fun TodayOverviewCard(
                 Column(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.Sm),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(
@@ -108,7 +112,7 @@ private fun DashboardMetric(
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(7.dp),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.Sm),
     ) {
         Text(
             text = value,

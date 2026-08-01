@@ -5,10 +5,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.CalendarMonth
@@ -23,8 +25,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.ScheduleKind
@@ -53,6 +58,9 @@ internal fun CourseStep(
     onScheduleKindChanged: (ScheduleKind) -> Unit,
     showError: Boolean,
 ) {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     EditorStepContent {
         EditorSectionCard(
             title = "Период курса",
@@ -65,6 +73,7 @@ internal fun CourseStep(
                 options = CourseEndMode.entries,
                 onSelected = onEndModeChanged,
                 title = CourseEndMode::title,
+                columns = 3,
             )
             when (endMode) {
                 CourseEndMode.WITHOUT_END -> Unit
@@ -80,7 +89,16 @@ internal fun CourseStep(
                         value = courseDays,
                         onValueChange = onCourseDaysChanged,
                         label = "Количество дней",
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done,
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                focusManager.clearFocus(force = true)
+                                keyboardController?.hide()
+                            },
+                        ),
                         isError = showError && invalid,
                         supportingText = if (showError && invalid) {
                             { Text("Введите количество дней больше нуля") }
@@ -188,14 +206,14 @@ internal fun TimeStep(
                             }
                             FilledTonalIconButton(
                                 onClick = { onChangeTime(index) },
-                                modifier = Modifier.size(44.dp),
+                                modifier = Modifier.size(48.dp),
                             ) {
                                 Icon(Icons.Rounded.Edit, contentDescription = "Изменить время")
                             }
                             if (times.size > 1) {
                                 IconButton(
                                     onClick = { onRemove(index) },
-                                    modifier = Modifier.size(44.dp),
+                                    modifier = Modifier.size(48.dp),
                                 ) {
                                     Icon(
                                         Icons.Rounded.DeleteOutline,
@@ -231,7 +249,10 @@ internal fun TimeStep(
 @Composable
 private fun DaySelector(mask: Int, onToggle: (Int) -> Unit) {
     val labels = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
-    Row(modifier = Modifier.fillMaxWidth()) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.Xs),
+    ) {
         labels.forEachIndexed { index, label ->
             val selected = mask and dayMask(index + 1) != 0
             Surface(
@@ -243,12 +264,12 @@ private fun DaySelector(mask: Int, onToggle: (Int) -> Unit) {
                 shape = CircleShape,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 2.dp)
+                    .heightIn(min = 48.dp)
                     .clickable { onToggle(index + 1) },
             ) {
                 Text(
                     label,
-                    modifier = Modifier.padding(vertical = 9.dp),
+                    modifier = Modifier.padding(vertical = AppSpacing.Md),
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                     textAlign = TextAlign.Center,
                 )
