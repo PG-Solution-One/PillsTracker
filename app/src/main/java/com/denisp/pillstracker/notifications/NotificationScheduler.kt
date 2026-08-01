@@ -99,6 +99,7 @@ class NotificationScheduler(
             triggerAt = scheduledAt,
             scheduledAt = scheduledAt,
             type = AlarmType.INITIAL,
+            purpose = AlarmPurpose.SCHEDULED_DOSE,
         )
     }
 
@@ -158,6 +159,7 @@ class NotificationScheduler(
             cycleStartedAt = now,
             fromStage = 0,
             now = now,
+            purpose = AlarmPurpose.USER_SNOOZE,
         )
     }
 
@@ -342,6 +344,7 @@ class NotificationScheduler(
         cycleStartedAt: Long,
         fromStage: Int,
         now: Long,
+        purpose: AlarmPurpose = AlarmPurpose.AUTOMATIC_REPEAT,
     ) {
         val repeat = ReminderPolicy.nextRepeat(
             cycleStartedAt = cycleStartedAt,
@@ -358,6 +361,7 @@ class NotificationScheduler(
             scheduledAt = scheduledAt,
             cycleStartedAt = cycleStartedAt,
             nextStage = repeat.stage,
+            nextAlarmExact = purpose.requiresExactTiming,
         )
         scheduleAlarm(
             triggerAt = repeat.triggerAt,
@@ -365,6 +369,7 @@ class NotificationScheduler(
             type = AlarmType.REPEAT,
             cycleStartedAt = cycleStartedAt,
             repeatStage = repeat.stage,
+            purpose = purpose,
         )
     }
 
@@ -378,6 +383,7 @@ class NotificationScheduler(
             triggerAt = dayEndAt,
             scheduledAt = scheduledAt,
             type = AlarmType.DAY_END,
+            purpose = AlarmPurpose.DAY_END,
         )
     }
 
@@ -396,6 +402,11 @@ class NotificationScheduler(
                     cycleStartedAt = cycle.cycleStartedAt,
                     fromStage = cycle.nextStage,
                     now = now,
+                    purpose = if (cycle.nextAlarmExact) {
+                        AlarmPurpose.USER_SNOOZE
+                    } else {
+                        AlarmPurpose.AUTOMATIC_REPEAT
+                    },
                 )
             }
     }
@@ -450,6 +461,7 @@ class NotificationScheduler(
         triggerAt: Long,
         scheduledAt: Long,
         type: AlarmType,
+        purpose: AlarmPurpose,
         cycleStartedAt: Long = scheduledAt,
         repeatStage: Int = 0,
     ) {
@@ -460,7 +472,7 @@ class NotificationScheduler(
             repeatStage = repeatStage,
         )
         stateStore.track(scheduledAt)
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()) {
+        if (purpose.requiresExactTiming && ExactAlarmAccess.isGranted(context)) {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
         } else {
             alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)

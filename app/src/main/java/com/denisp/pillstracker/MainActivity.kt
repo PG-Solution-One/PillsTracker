@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import com.denisp.pillstracker.data.local.ProfilePreferences
 import com.denisp.pillstracker.data.local.ThemePreferences
 import com.denisp.pillstracker.model.UserProfile
+import com.denisp.pillstracker.notifications.ExactAlarmAccess
 import com.denisp.pillstracker.notifications.NotificationScheduler.Companion.EXTRA_SCHEDULED_AT
 import com.denisp.pillstracker.ui.PillsTrackerApp
 import com.denisp.pillstracker.ui.theme.PillsTrackerTheme
@@ -27,6 +28,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var profilePreferences: ProfilePreferences
     private var themeMode by mutableStateOf(com.denisp.pillstracker.model.ThemeMode.SYSTEM)
     private var userProfile by mutableStateOf(UserProfile())
+    private var exactAlarmNoticeSeen by mutableStateOf(false)
 
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
@@ -38,6 +40,7 @@ class MainActivity : ComponentActivity() {
         profilePreferences = ProfilePreferences(this)
         themeMode = themePreferences.load()
         userProfile = profilePreferences.load()
+        exactAlarmNoticeSeen = profilePreferences.hasSeenExactAlarmNotice()
         notificationScheduledAt = intent.getLongExtra(EXTRA_SCHEDULED_AT, -1L)
         requestNotificationPermission()
 
@@ -49,6 +52,13 @@ class MainActivity : ComponentActivity() {
             userProfile = userProfile.copy(onboardingCompleted = true)
             profilePreferences.save(userProfile)
         }
+        if (
+            userProfile.onboardingCompleted &&
+            !exactAlarmNoticeSeen &&
+            ExactAlarmAccess.isGranted(this)
+        ) {
+            markExactAlarmNoticeSeen()
+        }
         setContent {
             PillsTrackerTheme(themeMode = themeMode) {
                 PillsTrackerApp(
@@ -58,6 +68,7 @@ class MainActivity : ComponentActivity() {
                     onNotificationHandled = { notificationScheduledAt = -1L },
                     themeMode = themeMode,
                     userProfile = userProfile,
+                    showExactAlarmNotice = !exactAlarmNoticeSeen,
                     onThemeModeChanged = {
                         themeMode = it
                         themePreferences.save(it)
@@ -66,6 +77,7 @@ class MainActivity : ComponentActivity() {
                         userProfile = it
                         profilePreferences.save(it)
                     },
+                    onExactAlarmNoticeSeen = ::markExactAlarmNoticeSeen,
                 )
             }
         }
@@ -85,5 +97,10 @@ class MainActivity : ComponentActivity() {
         ) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+
+    private fun markExactAlarmNoticeSeen() {
+        exactAlarmNoticeSeen = true
+        profilePreferences.markExactAlarmNoticeSeen()
     }
 }

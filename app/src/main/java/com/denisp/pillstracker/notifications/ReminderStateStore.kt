@@ -15,13 +15,20 @@ internal class ReminderStateStore(context: Context) {
         return ReminderCycleState(
             cycleStartedAt = preferences.getLong(cycleKey, scheduledAt),
             nextStage = preferences.getInt(nextStageKey(scheduledAt), 0),
+            nextAlarmExact = preferences.getBoolean(nextAlarmExactKey(scheduledAt), false),
         )
     }
 
-    fun saveCycle(scheduledAt: Long, cycleStartedAt: Long, nextStage: Int) {
+    fun saveCycle(
+        scheduledAt: Long,
+        cycleStartedAt: Long,
+        nextStage: Int,
+        nextAlarmExact: Boolean,
+    ) {
         preferences.edit {
             putLong(cycleStartedAtKey(scheduledAt), cycleStartedAt)
             putInt(nextStageKey(scheduledAt), nextStage)
+            putBoolean(nextAlarmExactKey(scheduledAt), nextAlarmExact)
         }
     }
 
@@ -29,6 +36,7 @@ internal class ReminderStateStore(context: Context) {
         preferences.edit {
             remove(cycleStartedAtKey(scheduledAt))
             remove(nextStageKey(scheduledAt))
+            remove(nextAlarmExactKey(scheduledAt))
         }
     }
 
@@ -87,6 +95,8 @@ internal class ReminderStateStore(context: Context) {
 
     private fun nextStageKey(scheduledAt: Long) = "next_stage_$scheduledAt"
 
+    private fun nextAlarmExactKey(scheduledAt: Long) = "next_alarm_exact_$scheduledAt"
+
     private companion object {
         const val PREFERENCES_NAME = "reminder_state"
         const val KEY_TRACKED_TIMESTAMPS = "tracked_timestamps"
@@ -97,4 +107,5 @@ internal class ReminderStateStore(context: Context) {
 internal data class ReminderCycleState(
     val cycleStartedAt: Long,
     val nextStage: Int,
+    val nextAlarmExact: Boolean,
 )

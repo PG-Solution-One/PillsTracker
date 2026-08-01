@@ -34,11 +34,19 @@ class ProfilePreferences(context: Context) {
         }
     }
 
+    fun hasSeenExactAlarmNotice(): Boolean =
+        preferences.getBoolean(KEY_EXACT_ALARM_NOTICE_SEEN, false)
+
+    fun markExactAlarmNoticeSeen() {
+        preferences.edit { putBoolean(KEY_EXACT_ALARM_NOTICE_SEEN, true) }
+    }
+
     companion object {
         private const val PROFILE_PREFERENCES = "profile"
         private const val KEY_NAME = "name"
         private const val KEY_BIRTH_DATE = "birth_date"
         private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
+        private const val KEY_EXACT_ALARM_NOTICE_SEEN = "exact_alarm_notice_seen"
         private const val LEGACY_APPEARANCE_PREFERENCES = "appearance"
         private const val LEGACY_KEY_USER_NAME = "user_name"
     }

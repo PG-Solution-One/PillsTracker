@@ -31,7 +31,9 @@ import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.ThemeMode
 import com.denisp.pillstracker.model.UserProfile
 import com.denisp.pillstracker.notifications.NotificationScheduler
+import com.denisp.pillstracker.ui.components.ExactAlarmPermissionNoticeDialog
 import com.denisp.pillstracker.ui.components.MedicineReminderOverlay
+import com.denisp.pillstracker.ui.components.rememberExactAlarmPermissionState
 import com.denisp.pillstracker.ui.components.updateIntakeGroupStatus
 import com.denisp.pillstracker.ui.components.updateIntakeStatus
 import com.denisp.pillstracker.ui.feature.editor.MedicineEditorScreen
@@ -57,8 +59,10 @@ fun PillsTrackerApp(
     onNotificationHandled: () -> Unit,
     themeMode: ThemeMode,
     userProfile: UserProfile,
+    showExactAlarmNotice: Boolean,
     onThemeModeChanged: (ThemeMode) -> Unit,
     onUserProfileChanged: (UserProfile) -> Unit,
+    onExactAlarmNoticeSeen: () -> Unit,
 ) {
     val density = LocalDensity.current
     val isImeVisible = WindowInsets.ime.getBottom(density) > 0
@@ -73,6 +77,7 @@ fun PillsTrackerApp(
     val lifecycleOwner = LocalLifecycleOwner.current
     val reminderQueue = remember { mutableStateListOf<Long>() }
     val dismissedReminderTimestamps = remember { mutableStateListOf<Long>() }
+    val exactAlarmPermission = rememberExactAlarmPermissionState()
     val navigate: (AppDestination) -> Unit = { target ->
         if (navigationStack.lastOrNull() != target) {
             navigationStack.add(target)
@@ -105,6 +110,19 @@ fun PillsTrackerApp(
     val finishReminder: (Long) -> Unit = { scheduledAt ->
         reminderQueue.remove(scheduledAt)
         if (openedScheduledAt == scheduledAt) onNotificationHandled()
+    }
+
+    LaunchedEffect(
+        showExactAlarmNotice,
+        exactAlarmPermission.isRequired,
+        exactAlarmPermission.isGranted,
+    ) {
+        if (
+            showExactAlarmNotice &&
+            (!exactAlarmPermission.isRequired || exactAlarmPermission.isGranted)
+        ) {
+            onExactAlarmNoticeSeen()
+        }
     }
 
     LaunchedEffect(scheduler, lifecycleOwner) {
@@ -170,6 +188,7 @@ fun PillsTrackerApp(
                 OnboardingScreen(
                     initialProfile = userProfile,
                     onComplete = onUserProfileChanged,
+                    onExactAlarmNoticeSeen = onExactAlarmNoticeSeen,
                 )
             }
 
@@ -327,6 +346,22 @@ fun PillsTrackerApp(
                     }
                     scheduler.dismissDoseNotification(reminderScheduledAt)
                     finishReminder(reminderScheduledAt)
+                },
+            )
+        }
+
+        if (
+            showExactAlarmNotice &&
+            userProfile.onboardingCompleted &&
+            exactAlarmPermission.isRequired &&
+            !exactAlarmPermission.isGranted &&
+            reminderScheduledAt == null
+        ) {
+            ExactAlarmPermissionNoticeDialog(
+                onDismiss = onExactAlarmNoticeSeen,
+                onRequestPermission = {
+                    onExactAlarmNoticeSeen()
+                    exactAlarmPermission.openSettings()
                 },
             )
         }

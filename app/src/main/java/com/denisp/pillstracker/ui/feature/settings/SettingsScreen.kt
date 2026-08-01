@@ -1,9 +1,5 @@
 package com.denisp.pillstracker.ui.feature.settings
 
-import android.app.AlarmManager
-import android.content.Intent
-import android.os.Build
-import android.provider.Settings
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +12,6 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -34,11 +28,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import com.denisp.pillstracker.model.ThemeMode
 import com.denisp.pillstracker.model.UserProfile
 import com.denisp.pillstracker.ui.components.AgePickerField
+import com.denisp.pillstracker.ui.components.ExactAlarmPermissionContent
 import com.denisp.pillstracker.ui.components.ProfileDatePickerDialog
+import com.denisp.pillstracker.ui.components.rememberExactAlarmPermissionState
 import com.denisp.pillstracker.ui.theme.AppScreenHeader
 import com.denisp.pillstracker.ui.theme.AppSpacing
 import com.denisp.pillstracker.ui.theme.AppSurfaceCard
@@ -51,17 +46,12 @@ fun SettingsScreen(
     onThemeModeChanged: (ThemeMode) -> Unit,
     onUserProfileChanged: (UserProfile) -> Unit,
 ) {
-    val context = LocalContext.current
     val density = LocalDensity.current
     val isImeVisible = WindowInsets.ime.getBottom(density) > 0
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     var showBirthDatePicker by remember { mutableStateOf(false) }
-    val exactAlarmsAvailable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
-    } else {
-        true
-    }
+    val exactAlarmPermission = rememberExactAlarmPermissionState()
 
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         LazyColumn(
@@ -139,40 +129,16 @@ fun SettingsScreen(
                     }
                 }
             }
-            item {
-                AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(AppSpacing.Xl),
-                        verticalArrangement = Arrangement.spacedBy(AppSpacing.Md),
-                    ) {
-                        Text(
-                            "Точные напоминания",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
+            if (exactAlarmPermission.isRequired) {
+                item {
+                    AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+                        ExactAlarmPermissionContent(
+                            isGranted = exactAlarmPermission.isGranted,
+                            onRequestPermission = exactAlarmPermission.openSettings,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(AppSpacing.Xl),
                         )
-                        Text(
-                            if (exactAlarmsAvailable) {
-                                "Разрешены. Уведомления смогут приходить точно в назначенное время."
-                            } else {
-                                "Android ограничивает точные будильники. Разрешите их для надёжных напоминаний."
-                            },
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        if (!exactAlarmsAvailable && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            Button(
-                                onClick = {
-                                    context.startActivity(
-                                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                                            data = "package:${context.packageName}".toUri()
-                                        },
-                                    )
-                                },
-                            ) {
-                                Text("Разрешить")
-                            }
-                        }
                     }
                 }
             }

@@ -40,7 +40,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.UserProfile
 import com.denisp.pillstracker.ui.components.AgePickerField
+import com.denisp.pillstracker.ui.components.ExactAlarmPermissionContent
 import com.denisp.pillstracker.ui.components.ProfileDatePickerDialog
+import com.denisp.pillstracker.ui.components.rememberExactAlarmPermissionState
 import com.denisp.pillstracker.ui.theme.AppPrimaryButton
 import com.denisp.pillstracker.ui.theme.AppRadii
 import com.denisp.pillstracker.ui.theme.AppScreenHeader
@@ -52,6 +54,7 @@ import com.denisp.pillstracker.ui.theme.AppTextField
 fun OnboardingScreen(
     initialProfile: UserProfile,
     onComplete: (UserProfile) -> Unit,
+    onExactAlarmNoticeSeen: () -> Unit,
 ) {
     val density = LocalDensity.current
     val isImeVisible = WindowInsets.ime.getBottom(density) > 0
@@ -62,6 +65,7 @@ fun OnboardingScreen(
         mutableStateOf(initialProfile.birthDate)
     }
     var showDatePicker by remember { mutableStateOf(false) }
+    val exactAlarmPermission = rememberExactAlarmPermissionState()
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -122,6 +126,18 @@ fun OnboardingScreen(
                 }
             }
             Spacer(Modifier.height(AppSpacing.Lg))
+            if (exactAlarmPermission.isRequired) {
+                AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+                    ExactAlarmPermissionContent(
+                        isGranted = exactAlarmPermission.isGranted,
+                        onRequestPermission = exactAlarmPermission.openSettings,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(AppSpacing.Xl),
+                    )
+                }
+                Spacer(Modifier.height(AppSpacing.Lg))
+            }
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -150,6 +166,7 @@ fun OnboardingScreen(
             Spacer(Modifier.height(AppSpacing.Xxl))
             AppPrimaryButton(
                 onClick = {
+                    onExactAlarmNoticeSeen()
                     onComplete(
                         UserProfile(
                             name = name.trim(),
