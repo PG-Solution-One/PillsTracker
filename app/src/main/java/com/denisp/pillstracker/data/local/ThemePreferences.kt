@@ -2,6 +2,7 @@ package com.denisp.pillstracker.data.local
 
 import android.content.Context
 import androidx.core.content.edit
+import com.denisp.pillstracker.model.InterfaceMode
 import com.denisp.pillstracker.model.ThemeMode
 
 class ThemePreferences(context: Context) {
@@ -15,7 +16,16 @@ class ThemePreferences(context: Context) {
         preferences.edit { putString(KEY_THEME, mode.name) }
     }
 
+    fun loadInterfaceMode(): InterfaceMode = InterfaceMode.fromStoredValue(
+        preferences.getString(KEY_INTERFACE_MODE, null),
+    )
+
+    fun saveInterfaceMode(mode: InterfaceMode) {
+        preferences.edit { putString(KEY_INTERFACE_MODE, mode.name) }
+    }
+
     companion object {
         private const val KEY_THEME = "theme"
+        private const val KEY_INTERFACE_MODE = "interface_mode"
     }
 }

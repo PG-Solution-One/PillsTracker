@@ -38,9 +38,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.denisp.pillstracker.model.InterfaceMode
 import com.denisp.pillstracker.model.UserProfile
 import com.denisp.pillstracker.ui.components.AgePickerField
 import com.denisp.pillstracker.ui.components.ExactAlarmPermissionContent
+import com.denisp.pillstracker.ui.components.InterfaceModeToggle
 import com.denisp.pillstracker.ui.components.ProfileDatePickerDialog
 import com.denisp.pillstracker.ui.components.rememberExactAlarmPermissionState
 import com.denisp.pillstracker.ui.theme.AppPrimaryButton
@@ -53,6 +55,8 @@ import com.denisp.pillstracker.ui.theme.AppTextField
 @Composable
 fun OnboardingScreen(
     initialProfile: UserProfile,
+    interfaceMode: InterfaceMode,
+    onInterfaceModeChanged: (InterfaceMode) -> Unit,
     onComplete: (UserProfile) -> Unit,
     onExactAlarmNoticeSeen: () -> Unit,
 ) {
@@ -122,6 +126,10 @@ fun OnboardingScreen(
                         onClick = { showDatePicker = true },
                         modifier = Modifier.fillMaxWidth(),
                         optional = true,
+                    )
+                    InterfaceModeToggle(
+                        interfaceMode = interfaceMode,
+                        onInterfaceModeChanged = onInterfaceModeChanged,
                     )
                 }
             }

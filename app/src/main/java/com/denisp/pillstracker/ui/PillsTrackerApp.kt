@@ -8,7 +8,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -21,6 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -28,6 +34,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.denisp.pillstracker.application.updateIntakeGroupStatus
 import com.denisp.pillstracker.application.updateIntakeStatus
 import com.denisp.pillstracker.data.TrackerRepository
+import com.denisp.pillstracker.model.InterfaceMode
 import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.ThemeMode
@@ -43,6 +50,7 @@ import com.denisp.pillstracker.ui.feature.medicines.MedicinesScreen
 import com.denisp.pillstracker.ui.feature.onboarding.OnboardingScreen
 import com.denisp.pillstracker.ui.feature.settings.SettingsScreen
 import com.denisp.pillstracker.ui.feature.today.TodayScreen
+import com.denisp.pillstracker.ui.theme.LocalInterfaceMode
 import java.time.LocalDate
 
 private sealed interface AppDestination {
@@ -58,12 +66,15 @@ fun PillsTrackerApp(
     openedScheduledAt: Long?,
     onNotificationHandled: () -> Unit,
     themeMode: ThemeMode,
+    interfaceMode: InterfaceMode,
     userProfile: UserProfile,
     showExactAlarmNotice: Boolean,
     onThemeModeChanged: (ThemeMode) -> Unit,
+    onInterfaceModeChanged: (InterfaceMode) -> Unit,
     onUserProfileChanged: (UserProfile) -> Unit,
     onExactAlarmNoticeSeen: () -> Unit,
 ) {
+    val simplified = LocalInterfaceMode.current == InterfaceMode.SIMPLIFIED
     val density = LocalDensity.current
     val isImeVisible = WindowInsets.ime.getBottom(density) > 0
     val snapshot by repository.snapshot.collectAsStateWithLifecycle()
@@ -187,6 +198,8 @@ fun PillsTrackerApp(
             !userProfile.onboardingCompleted && snapshot.medicines.isEmpty() -> {
                 OnboardingScreen(
                     initialProfile = userProfile,
+                    interfaceMode = interfaceMode,
+                    onInterfaceModeChanged = onInterfaceModeChanged,
                     onComplete = onUserProfileChanged,
                     onExactAlarmNoticeSeen = onExactAlarmNoticeSeen,
                 )
@@ -246,15 +259,34 @@ fun PillsTrackerApp(
                                     section == MainSection.MEDICINES
                                 )
                         ) {
-                            FloatingActionButton(
-                                onClick = {
-                                    editedMedicine = null
-                                    navigate(AppDestination.MedicineEditor)
-                                },
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                            ) {
-                                Text("+", style = MaterialTheme.typography.headlineMedium)
+                            val addMedicine = {
+                                editedMedicine = null
+                                navigate(AppDestination.MedicineEditor)
+                            }
+                            if (simplified) {
+                                ExtendedFloatingActionButton(
+                                    onClick = addMedicine,
+                                    icon = {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Add,
+                                            contentDescription = null,
+                                        )
+                                    },
+                                    text = { Text("Добавить лекарство") },
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                )
+                            } else {
+                                FloatingActionButton(
+                                    onClick = addMedicine,
+                                    modifier = Modifier.semantics {
+                                        contentDescription = "Добавить лекарство"
+                                    },
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                ) {
+                                    Text("+", style = MaterialTheme.typography.headlineMedium)
+                                }
                             }
                         }
                     },
@@ -300,8 +332,10 @@ fun PillsTrackerApp(
 
                             MainSection.SETTINGS -> SettingsScreen(
                                 themeMode = themeMode,
+                                interfaceMode = interfaceMode,
                                 userProfile = userProfile,
                                 onThemeModeChanged = onThemeModeChanged,
+                                onInterfaceModeChanged = onInterfaceModeChanged,
                                 onUserProfileChanged = onUserProfileChanged,
                             )
                         }

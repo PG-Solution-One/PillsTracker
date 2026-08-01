@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.denisp.pillstracker.R
+import com.denisp.pillstracker.model.InterfaceMode
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.ScheduledDose
 import com.denisp.pillstracker.ui.theme.AppElevation
@@ -46,6 +47,7 @@ import com.denisp.pillstracker.ui.theme.AppPrimaryButton
 import com.denisp.pillstracker.ui.theme.AppSecondaryButton
 import com.denisp.pillstracker.ui.theme.AppSpacing
 import com.denisp.pillstracker.ui.theme.AppSurfaceCard
+import com.denisp.pillstracker.ui.theme.LocalInterfaceMode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -58,6 +60,7 @@ fun MedicineReminderOverlay(
     onDismiss: () -> Unit,
 ) {
     if (doses.isEmpty()) return
+    val simplified = LocalInterfaceMode.current == InterfaceMode.SIMPLIFIED
     val multiple = doses.size > 1
     val singleDose = doses.singleOrNull()
     val notes = doses.map { it.medicine.note.trim() }.filter { it.isNotEmpty() }.distinct()
@@ -202,27 +205,25 @@ fun MedicineReminderOverlay(
                             nowMillis = nowMillis,
                         )
                         Spacer(Modifier.height(AppSpacing.Xs))
-                        AppPrimaryButton(
-                            onClick = ::takeAll,
-                            enabled = !submitting && singleDose.status != IntakeStatus.TAKEN,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                        ) {
-                            Icon(Icons.Rounded.CheckCircle, contentDescription = null)
-                            Text(
-                                text = stringResource(R.string.notification_taken_single),
-                                modifier = Modifier.padding(start = AppSpacing.Sm),
-                            )
+                        if (!simplified) {
+                            AppPrimaryButton(
+                                onClick = ::takeAll,
+                                enabled = !submitting && singleDose.status != IntakeStatus.TAKEN,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Icon(Icons.Rounded.CheckCircle, contentDescription = null)
+                                Text(
+                                    text = stringResource(R.string.notification_taken_single),
+                                    modifier = Modifier.padding(start = AppSpacing.Sm),
+                                )
+                            }
                         }
                     }
 
                     AppSecondaryButton(
                         onClick = onSnooze,
                         enabled = !submitting,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(Icons.Rounded.Alarm, contentDescription = null)
                         Text(

@@ -3,13 +3,16 @@ package com.denisp.pillstracker.ui.components
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicInteger
@@ -24,7 +27,7 @@ class AppDateTimePickerDialogsUiTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun datePickerStartsWithManualInputAndSwitchesModes() {
+    fun datePickerShowsInputAndCalendarWithoutInitialFocus() {
         composeRule.setContent {
             MaterialTheme {
                 AppDatePickerDialog(
@@ -37,23 +40,16 @@ class AppDateTimePickerDialogsUiTest {
         }
 
         composeRule
-            .onNodeWithContentDescription("Открыть календарь")
-            .assertIsDisplayed()
-            .performClick()
-        composeRule
-            .onNodeWithContentDescription("Ввести дату вручную")
-            .assertIsDisplayed()
-            .performClick()
-        composeRule
-            .onNodeWithContentDescription("Открыть календарь")
-            .assertIsDisplayed()
-        composeRule
             .onNodeWithTag(DATE_INPUT_TAG)
             .assertIsDisplayed()
-        }
+            .assertIsNotFocused()
+        composeRule
+            .onNodeWithTag(DATE_CALENDAR_TAG)
+            .assertIsDisplayed()
+    }
 
     @Test
-    fun timePickerStartsWithManualInputAndSwitchesModes() {
+    fun timePickerShowsCombinedInputAndDialWithoutInitialFocus() {
         composeRule.setContent {
             MaterialTheme {
                 AppTimePickerDialog(
@@ -66,23 +62,17 @@ class AppDateTimePickerDialogsUiTest {
         }
 
         composeRule
-            .onNodeWithContentDescription("Открыть циферблат")
+            .onNodeWithTag(TIME_INPUT_TAG)
             .assertIsDisplayed()
-            .performClick()
+            .assertIsNotFocused()
+            .assertTextEquals("Время", "08:30")
         composeRule
             .onNodeWithTag(TIME_DIAL_TAG)
-            .assertIsDisplayed()
-        composeRule
-            .onNodeWithContentDescription("Ввести время вручную")
-            .assertIsDisplayed()
-            .performClick()
-        composeRule
-            .onNodeWithContentDescription("Открыть циферблат")
             .assertIsDisplayed()
     }
 
     @Test
-    fun timeDialOpensWhenKeyboardWasVisible() {
+    fun touchingTimeDialClearsManualInputFocus() {
         composeRule.setContent {
             MaterialTheme {
                 AppTimePickerDialog(
@@ -95,14 +85,18 @@ class AppDateTimePickerDialogsUiTest {
         }
 
         composeRule
-            .onNodeWithTag(TIME_HOUR_INPUT_TAG)
+            .onNodeWithTag(TIME_INPUT_TAG)
             .performClick()
         composeRule
-            .onNodeWithContentDescription("Открыть циферблат")
-            .performClick()
+            .onNodeWithTag(TIME_INPUT_TAG)
+            .assertIsFocused()
         composeRule
             .onNodeWithTag(TIME_DIAL_TAG)
+            .performTouchInput { click() }
             .assertIsDisplayed()
+        composeRule
+            .onNodeWithTag(TIME_INPUT_TAG)
+            .assertIsNotFocused()
     }
 
     @Test
@@ -120,18 +114,12 @@ class AppDateTimePickerDialogsUiTest {
         }
 
         composeRule
-            .onNodeWithTag(TIME_HOUR_INPUT_TAG)
+            .onNodeWithTag(TIME_INPUT_TAG)
             .assertIsDisplayed()
-            .performTextReplacement("21")
+            .performTextReplacement("2145")
         composeRule
-            .onNodeWithTag(TIME_HOUR_INPUT_TAG)
-            .assertTextEquals("Часы", "21")
-        composeRule
-            .onNodeWithTag(TIME_MINUTE_INPUT_TAG)
-            .performTextReplacement("45")
-        composeRule
-            .onNodeWithTag(TIME_MINUTE_INPUT_TAG)
-            .assertTextEquals("Минуты", "45")
+            .onNodeWithTag(TIME_INPUT_TAG)
+            .assertTextEquals("Время", "21:45")
         composeRule
             .onNodeWithText("Готово")
             .performClick()
@@ -142,7 +130,7 @@ class AppDateTimePickerDialogsUiTest {
     }
 
     @Test
-    fun timeInputRejectsImpossibleValuesAndMovesFocusToMinutes() {
+    fun invalidCombinedTimeDisablesConfirmation() {
         composeRule.setContent {
             MaterialTheme {
                 AppTimePickerDialog(
@@ -155,18 +143,13 @@ class AppDateTimePickerDialogsUiTest {
         }
 
         composeRule
-            .onNodeWithTag(TIME_HOUR_INPUT_TAG)
-            .performTextReplacement("29")
+            .onNodeWithTag(TIME_INPUT_TAG)
+            .performTextReplacement("2960")
         composeRule
-            .onNodeWithTag(TIME_HOUR_INPUT_TAG)
-            .assertTextEquals("Часы", "08")
-            .performTextReplacement("23")
+            .onNodeWithTag(TIME_INPUT_TAG)
+            .assertTextEquals("Время", "29:60")
         composeRule
-            .onNodeWithTag(TIME_MINUTE_INPUT_TAG)
-            .assertIsFocused()
-            .performTextReplacement("99")
-        composeRule
-            .onNodeWithTag(TIME_MINUTE_INPUT_TAG)
-            .assertTextEquals("Минуты", "30")
+            .onNodeWithText("Готово")
+            .assertIsNotEnabled()
     }
 }

@@ -2,16 +2,22 @@ package com.denisp.pillstracker.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.denisp.pillstracker.model.InterfaceMode
 import com.denisp.pillstracker.model.ThemeMode
 
 private val LightColors = lightColorScheme(
@@ -101,6 +107,45 @@ private val AppTypography = Typography(
     labelLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
 )
 
+private val SimplifiedTypography = AppTypography.copy(
+    headlineLarge = AppTypography.headlineLarge.copy(fontSize = 34.sp, lineHeight = 40.sp),
+    headlineMedium = AppTypography.headlineMedium.copy(fontSize = 30.sp, lineHeight = 36.sp),
+    headlineSmall = AppTypography.headlineSmall.copy(fontSize = 27.sp, lineHeight = 34.sp),
+    titleLarge = AppTypography.titleLarge.copy(fontSize = 24.sp, lineHeight = 31.sp),
+    titleMedium = AppTypography.titleMedium.copy(fontSize = 19.sp, lineHeight = 26.sp),
+    titleSmall = AppTypography.titleSmall.copy(fontSize = 17.sp, lineHeight = 24.sp),
+    bodyLarge = AppTypography.bodyLarge.copy(fontSize = 19.sp, lineHeight = 28.sp),
+    bodyMedium = AppTypography.bodyMedium.copy(fontSize = 17.sp, lineHeight = 25.sp),
+    bodySmall = AppTypography.bodySmall.copy(fontSize = 16.sp, lineHeight = 23.sp),
+    labelLarge = AppTypography.labelLarge.copy(fontSize = 17.sp, lineHeight = 23.sp),
+    labelMedium = AppTypography.labelMedium.copy(fontSize = 15.sp, lineHeight = 21.sp),
+    labelSmall = AppTypography.labelSmall.copy(fontSize = 14.sp, lineHeight = 20.sp),
+)
+
+internal data class AppUiMetrics(
+    val primaryButtonMinHeight: Dp,
+    val iconButtonSize: Dp,
+    val navigationIconSize: Dp,
+    val fieldMinHeight: Dp,
+)
+
+private val StandardUiMetrics = AppUiMetrics(
+    primaryButtonMinHeight = 52.dp,
+    iconButtonSize = 48.dp,
+    navigationIconSize = 28.dp,
+    fieldMinHeight = 56.dp,
+)
+
+private val SimplifiedUiMetrics = AppUiMetrics(
+    primaryButtonMinHeight = 60.dp,
+    iconButtonSize = 56.dp,
+    navigationIconSize = 32.dp,
+    fieldMinHeight = 64.dp,
+)
+
+internal val LocalInterfaceMode = staticCompositionLocalOf { InterfaceMode.STANDARD }
+internal val LocalAppUiMetrics = staticCompositionLocalOf { StandardUiMetrics }
+
 private val AppShapes = Shapes(
     extraSmall = RoundedCornerShape(AppRadii.Small),
     small = RoundedCornerShape(AppRadii.Small),
@@ -112,6 +157,7 @@ private val AppShapes = Shapes(
 @Composable
 fun PillsTrackerTheme(
     themeMode: ThemeMode,
+    interfaceMode: InterfaceMode = InterfaceMode.STANDARD,
     content: @Composable () -> Unit,
 ) {
     val darkTheme = when (themeMode) {
@@ -120,10 +166,26 @@ fun PillsTrackerTheme(
         ThemeMode.DARK -> true
     }
     val colors = if (darkTheme) DarkColors else LightColors
-    MaterialTheme(
-        colorScheme = colors,
-        typography = AppTypography,
-        shapes = AppShapes,
-        content = content,
-    )
+    val typography = if (interfaceMode == InterfaceMode.SIMPLIFIED) {
+        SimplifiedTypography
+    } else {
+        AppTypography
+    }
+    val uiMetrics = if (interfaceMode == InterfaceMode.SIMPLIFIED) {
+        SimplifiedUiMetrics
+    } else {
+        StandardUiMetrics
+    }
+    CompositionLocalProvider(
+        LocalInterfaceMode provides interfaceMode,
+        LocalAppUiMetrics provides uiMetrics,
+        LocalMinimumInteractiveComponentSize provides uiMetrics.iconButtonSize,
+    ) {
+        MaterialTheme(
+            colorScheme = colors,
+            typography = typography,
+            shapes = AppShapes,
+            content = content,
+        )
+    }
 }

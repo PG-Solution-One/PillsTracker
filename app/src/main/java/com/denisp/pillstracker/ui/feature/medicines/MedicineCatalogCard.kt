@@ -15,12 +15,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.model.Medicine
+import com.denisp.pillstracker.model.InterfaceMode
 import com.denisp.pillstracker.model.ScheduleKind
 import com.denisp.pillstracker.model.displayAmount
 import com.denisp.pillstracker.ui.asTime
 import com.denisp.pillstracker.ui.components.MedicineAppearance
 import com.denisp.pillstracker.ui.theme.AppSurfaceCard
+import com.denisp.pillstracker.ui.theme.AppSecondaryButton
 import com.denisp.pillstracker.ui.theme.AppSpacing
+import com.denisp.pillstracker.ui.theme.LocalInterfaceMode
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -30,6 +33,7 @@ internal fun MedicineCatalogCard(
     onOpen: () -> Unit,
     onLongPress: () -> Unit,
 ) {
+    val simplified = LocalInterfaceMode.current == InterfaceMode.SIMPLIFIED
     AppSurfaceCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -54,7 +58,7 @@ internal fun MedicineCatalogCard(
                         text = medicine.name,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
+                        maxLines = if (simplified) 2 else 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
@@ -75,11 +79,25 @@ internal fun MedicineCatalogCard(
                     },
                 )
             }
-            Text(
-                text = "Нажмите, чтобы открыть · удерживайте для действий",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            if (simplified) {
+                Text(
+                    text = "Нажмите карточку, чтобы открыть лекарство",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                AppSecondaryButton(
+                    onClick = onLongPress,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Действия с лекарством")
+                }
+            } else {
+                Text(
+                    text = "Нажмите, чтобы открыть · удерживайте для действий",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }

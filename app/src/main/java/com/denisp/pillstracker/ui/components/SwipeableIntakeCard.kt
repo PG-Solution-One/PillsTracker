@@ -44,13 +44,16 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.denisp.pillstracker.domain.DoseTimingPolicy
+import com.denisp.pillstracker.model.InterfaceMode
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.ScheduleKind
 import com.denisp.pillstracker.model.ScheduledDose
 import com.denisp.pillstracker.model.displayAmount
 import com.denisp.pillstracker.ui.asTime
 import com.denisp.pillstracker.ui.theme.AppStatusColors
+import com.denisp.pillstracker.ui.theme.AppSecondaryButton
 import com.denisp.pillstracker.ui.theme.AppSurfaceCard
+import com.denisp.pillstracker.ui.theme.LocalInterfaceMode
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -69,6 +72,7 @@ fun SwipeableIntakeCard(
     prominentScheduledTime: Boolean = false,
     nowMillis: Long = System.currentTimeMillis(),
 ) {
+    val simplified = LocalInterfaceMode.current == InterfaceMode.SIMPLIFIED
     val canTake = canEdit
     val currentOnStatus by rememberUpdatedState(onStatus)
     val currentCanEdit by rememberUpdatedState(canEdit)
@@ -143,7 +147,7 @@ fun SwipeableIntakeCard(
                 .draggable(
                     state = dragState,
                     orientation = Orientation.Horizontal,
-                    enabled = canEdit,
+                    enabled = canEdit && !simplified,
                     onDragStopped = {
                         val selectedStatus = when {
                             dragOffsetPx >= thresholdPx && currentCanTake -> IntakeStatus.TAKEN
@@ -195,7 +199,7 @@ fun SwipeableIntakeCard(
                                 MaterialTheme.typography.bodyLarge
                             },
                             fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
+                            maxLines = if (simplified) 2 else 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
@@ -213,7 +217,11 @@ fun SwipeableIntakeCard(
                                 }
                             },
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = if (prominentScheduledTime) 2 else 1,
+                            maxLines = when {
+                                simplified -> 3
+                                prominentScheduledTime -> 2
+                                else -> 1
+                            },
                             overflow = TextOverflow.Ellipsis,
                         )
                         if (dose.updatedAt != null && dose.status != IntakeStatus.PENDING) {
@@ -241,20 +249,44 @@ fun SwipeableIntakeCard(
                             )
                         }
                     }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        if (showScheduledTime && prominentScheduledTime) {
+                    if (!simplified) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            if (showScheduledTime && prominentScheduledTime) {
+                                ScheduledTimeBadge(scheduledAt = dose.scheduledAt)
+                            }
+                            IntakeStatusControls(
+                                status = dose.status,
+                                enabled = canEdit,
+                                takenEnabled = canTake,
+                                subjectName = dose.medicine.name,
+                                onStatus = onStatus,
+                            )
+                        }
+                    } else if (showScheduledTime && prominentScheduledTime) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             ScheduledTimeBadge(scheduledAt = dose.scheduledAt)
                         }
-                        IntakeStatusControls(
-                            status = dose.status,
-                            enabled = canEdit,
-                            takenEnabled = canTake,
-                            subjectName = dose.medicine.name,
-                            onStatus = onStatus,
-                        )
+                    }
+                }
+                if (simplified) {
+                    IntakeStatusControls(
+                        status = dose.status,
+                        enabled = canEdit,
+                        takenEnabled = canTake,
+                        subjectName = dose.medicine.name,
+                        modifier = Modifier.fillMaxWidth(),
+                        onStatus = onStatus,
+                    )
+                    onLongPress?.let { showActions ->
+                        AppSecondaryButton(
+                            onClick = showActions,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Действия с лекарством")
+                        }
                     }
                 }
             }

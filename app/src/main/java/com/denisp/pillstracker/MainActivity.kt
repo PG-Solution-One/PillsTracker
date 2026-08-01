@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import com.denisp.pillstracker.data.local.ProfilePreferences
 import com.denisp.pillstracker.data.local.ThemePreferences
+import com.denisp.pillstracker.model.InterfaceMode
 import com.denisp.pillstracker.model.UserProfile
 import com.denisp.pillstracker.notifications.ExactAlarmAccess
 import com.denisp.pillstracker.notifications.NotificationScheduler.Companion.EXTRA_SCHEDULED_AT
@@ -27,6 +28,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var themePreferences: ThemePreferences
     private lateinit var profilePreferences: ProfilePreferences
     private var themeMode by mutableStateOf(com.denisp.pillstracker.model.ThemeMode.SYSTEM)
+    private var interfaceMode by mutableStateOf(InterfaceMode.STANDARD)
     private var userProfile by mutableStateOf(UserProfile())
     private var exactAlarmNoticeSeen by mutableStateOf(false)
 
@@ -39,6 +41,7 @@ class MainActivity : ComponentActivity() {
         themePreferences = ThemePreferences(this)
         profilePreferences = ProfilePreferences(this)
         themeMode = themePreferences.load()
+        interfaceMode = themePreferences.loadInterfaceMode()
         userProfile = profilePreferences.load()
         exactAlarmNoticeSeen = profilePreferences.hasSeenExactAlarmNotice()
         notificationScheduledAt = intent.getLongExtra(EXTRA_SCHEDULED_AT, -1L)
@@ -60,18 +63,26 @@ class MainActivity : ComponentActivity() {
             markExactAlarmNoticeSeen()
         }
         setContent {
-            PillsTrackerTheme(themeMode = themeMode) {
+            PillsTrackerTheme(
+                themeMode = themeMode,
+                interfaceMode = interfaceMode,
+            ) {
                 PillsTrackerApp(
                     repository = application.repository,
                     scheduler = application.notificationScheduler,
                     openedScheduledAt = notificationScheduledAt.takeIf { it >= 0 },
                     onNotificationHandled = { notificationScheduledAt = -1L },
                     themeMode = themeMode,
+                    interfaceMode = interfaceMode,
                     userProfile = userProfile,
                     showExactAlarmNotice = !exactAlarmNoticeSeen,
                     onThemeModeChanged = {
                         themeMode = it
                         themePreferences.save(it)
+                    },
+                    onInterfaceModeChanged = {
+                        interfaceMode = it
+                        themePreferences.saveInterfaceMode(it)
                     },
                     onUserProfileChanged = {
                         userProfile = it
