@@ -73,7 +73,7 @@ internal data class MedicineEditorDraft(
         3 -> scheduleKind == ScheduleKind.AS_NEEDED ||
             times.isNotEmpty() && times.all {
                 scheduleKind != ScheduleKind.SELECTED_DAYS || it.dayMask != 0
-            }
+            } && !hasOverlappingScheduleTimes(scheduleKind, times)
         else -> true
     }
 
@@ -104,6 +104,7 @@ internal data class MedicineEditorDraft(
         } else {
             times.map {
                 ScheduleTime(
+                    id = it.id,
                     medicineId = initialMedicine?.id ?: 0,
                     minuteOfDay = it.minuteOfDay,
                     dayMask = if (scheduleKind == ScheduleKind.SELECTED_DAYS) {
@@ -111,6 +112,7 @@ internal data class MedicineEditorDraft(
                     } else {
                         ALL_DAYS_MASK
                     },
+                    effectiveFromMillis = it.effectiveFromMillis,
                 )
             }
         },
@@ -152,7 +154,14 @@ internal data class MedicineEditorDraft(
                 times = if (sourceTimes.isEmpty()) {
                     listOf(EditableScheduleTime(8 * 60, ALL_DAYS_MASK))
                 } else {
-                    sourceTimes.map { EditableScheduleTime(it.minuteOfDay, it.dayMask) }
+                    sourceTimes.map {
+                        EditableScheduleTime(
+                            minuteOfDay = it.minuteOfDay,
+                            dayMask = it.dayMask,
+                            id = it.id,
+                            effectiveFromMillis = it.effectiveFromMillis,
+                        )
+                    }
                 },
                 mealTiming = medicine?.mealTiming ?: MealTiming.ANY,
                 note = limitMedicineNote(medicine?.note.orEmpty()),

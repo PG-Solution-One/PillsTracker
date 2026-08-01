@@ -71,6 +71,7 @@ class NotificationScheduler(
             cancelTrackedAlarms()
         }
         reconcileRecentPast(now)
+        pruneObsoleteReminders()
         if (resetExisting) {
             restoreActiveReminders(now)
         }
@@ -176,10 +177,11 @@ class NotificationScheduler(
         cancelAllAlarms(scheduledAt)
         stateStore.clearCycle(scheduledAt)
         stateStore.untrack(scheduledAt)
+        stateStore.deactivateReminder(scheduledAt)
     }
 
     fun activeReminderTimestamps(now: Long = System.currentTimeMillis()): List<Long> =
-        stateStore.trackedTimestamps()
+        restorableReminderTimestamps()
             .asSequence()
             .filter { scheduledAt ->
                 scheduledAt <= now &&
@@ -229,6 +231,7 @@ class NotificationScheduler(
             .setContentIntent(openIntent)
             .setAutoCancel(false)
             .setOngoing(false)
+            .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
 
@@ -329,6 +332,7 @@ class NotificationScheduler(
     }
 
     private fun deliverReminder(scheduledAt: Long) {
+        stateStore.activateReminder(scheduledAt)
         showDoseNotification(scheduledAt)
         _reminderEvents.tryEmit(scheduledAt)
     }
@@ -408,6 +412,19 @@ class NotificationScheduler(
                 .forEach(::markExpired)
         }
     }
+
+    private fun pruneObsoleteReminders() {
+        restorableReminderTimestamps()
+            .filterNot(::hasPendingDoses)
+            .forEach { scheduledAt ->
+                cancelFollowUps(scheduledAt)
+                dismissDoseNotification(scheduledAt)
+            }
+    }
+
+    private fun restorableReminderTimestamps(): Set<Long> =
+        stateStore.activeReminderTimestamps() +
+            stateStore.trackedTimestamps().filter(stateStore::isReminderActive)
 
     private fun cancelTrackedAlarms() {
         stateStore.trackedTimestamps().forEach(::cancelAllAlarms)

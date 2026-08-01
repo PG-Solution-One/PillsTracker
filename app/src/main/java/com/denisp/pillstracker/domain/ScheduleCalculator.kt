@@ -32,8 +32,9 @@ object ScheduleCalculator {
                 medicine.times
                     .asSequence()
                     .filter { schedule -> schedule.dayMask and dayMask(date.dayOfWeek.value) != 0 }
-                    .map { schedule ->
+                    .mapNotNull { schedule ->
                         val time = date.atStartOfDay(zoneId).plusMinutes(schedule.minuteOfDay.toLong()).toInstant().toEpochMilli()
+                        if (time < schedule.effectiveFromMillis) return@mapNotNull null
                         val record = statuses[medicine.id to time]
                         ScheduledDose(
                             medicine = medicine,
