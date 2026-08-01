@@ -17,6 +17,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.denisp.pillstracker.application.updateIntakeGroupStatus
+import com.denisp.pillstracker.application.updateIntakeStatus
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.R
@@ -27,8 +29,6 @@ import com.denisp.pillstracker.model.ScheduledDose
 import com.denisp.pillstracker.model.TrackerSnapshot
 import com.denisp.pillstracker.notifications.NotificationScheduler
 import com.denisp.pillstracker.ui.components.GroupedIntakeCard
-import com.denisp.pillstracker.ui.components.updateIntakeGroupStatus
-import com.denisp.pillstracker.ui.components.updateIntakeStatus
 import com.denisp.pillstracker.ui.components.rememberMinuteNow
 import com.denisp.pillstracker.ui.feature.medicines.MedicineQuickActionsHost
 import com.denisp.pillstracker.ui.theme.AppEmptyState
@@ -141,7 +141,7 @@ fun TodayScreen(
                             onTakeAll = {
                                 updateIntakeGroupStatus(
                                     repository = repository,
-                                    scheduler = scheduler,
+                                    notificationGateway = scheduler,
                                     scheduledAt = group.scheduledAt,
                                     status = IntakeStatus.TAKEN,
                                 )

@@ -8,6 +8,9 @@ Android, а платформенные точки входа и уведомле
 com.denisp.pillstracker
 ├── MainActivity.kt
 ├── PillsTrackerApplication.kt
+├── application
+│   ├── IntakeNotificationGateway.kt
+│   └── IntakeStatusActions.kt
 ├── model
 │   ├── Intake.kt
 │   ├── Medicine.kt
@@ -15,6 +18,7 @@ com.denisp.pillstracker
 │   ├── ThemeMode.kt
 │   └── UserProfile.kt
 ├── domain
+│   ├── DoseTimingPolicy.kt
 │   ├── IntakeRules.kt
 │   ├── ScheduleCalculator.kt
 │   └── StockRules.kt
@@ -25,6 +29,8 @@ com.denisp.pillstracker
 │       ├── ThemePreferences.kt
 │       └── TrackerDatabase.kt
 ├── notifications
+│   ├── AlarmSchedulingPolicy.kt
+│   ├── ExactAlarmAccess.kt
 │   ├── NotificationScheduler.kt
 │   ├── ReminderPolicy.kt
 │   ├── ReminderStateStore.kt
@@ -38,10 +44,15 @@ com.denisp.pillstracker
     ├── DateTimeFormats.kt
     ├── MedicinePalette.kt
     ├── components
+    │   ├── AgePickerField.kt
     │   ├── AppDateTimePickerDialogs.kt
+    │   ├── DoseTimingUi.kt
+    │   ├── ExactAlarmPermissionUi.kt
     │   ├── GroupedIntakeCard.kt
+    │   ├── IntakeStatusControls.kt
     │   ├── MedicineAppearance.kt
     │   ├── MedicineReminderOverlay.kt
+    │   ├── ProfileDatePickerDialog.kt
     │   ├── ScheduledTimeBadge.kt
     │   └── SwipeableIntakeCard.kt
     ├── theme
@@ -51,11 +62,13 @@ com.denisp.pillstracker
     └── feature
         ├── editor
         │   ├── MedicineEditorScreen.kt
+        │   ├── MedicineEditorDraft.kt
         │   ├── MedicineEditorModels.kt
         │   ├── MedicineEditorRules.kt
         │   ├── MedicineFormCarousel.kt
         │   ├── MedicineFormCarouselState.kt
         │   ├── MedicineColorPicker.kt
+        │   ├── MedicineEditOverview.kt
         │   ├── EditorMedicineStep.kt
         │   ├── EditorDosageStep.kt
         │   ├── EditorScheduleSteps.kt
@@ -82,21 +95,27 @@ MainActivity / Application
           ↓
 PillsTrackerApp
           ↓
-Feature Screen → Feature UI state / pure calculations
+Feature Screen / Android Receiver
           ↓
-TrackerRepository → TrackerDatabase
-          ↓
-      Model + Domain
+Application Actions
+       ↙       ↘ uses
+Repository   IntakeNotificationGateway
+    ↓                    ↑ implements
+TrackerDatabase   NotificationScheduler
+    ↓                    ↓
+Model + Domain   Android Alarm/Notification API
 
 NotificationScheduler → TrackerRepository + Android Alarm/Notification API
 ```
 
 - `model` содержит структуры данных и enum без Android-зависимостей.
 - `domain` содержит чистые правила приёма и расчёт расписаний.
+- `application` координирует пользовательские действия между репозиторием и
+  портом уведомлений, не завися от UI или конкретной Android-реализации.
 - `data/local` отвечает за SQLite и небольшие локальные настройки.
 - `data` предоставляет единую точку доступа к данным и публикует снимок состояния.
 - `notifications` планирует системные напоминания и преобразует события Android в
-  операции репозитория.
+  вызовы application-сценариев; `NotificationScheduler` реализует порт уведомлений.
 - `ui/feature` содержит экраны и компоненты одной пользовательской функции.
 - `ui/components` содержит элементы, которые используются несколькими функциями.
 - `ui/theme` содержит тему, дизайн-токены и переиспользуемые элементы дизайн-системы.
@@ -169,3 +188,5 @@ NotificationScheduler → TrackerRepository + Android Alarm/Notification API
 7. Изменение схемы SQLite сопровождается миграцией и увеличением версии базы.
 8. Новая чистая логика сопровождается unit-тестом.
 9. Новая функциональность и исправления фиксируются в `CHANGELOG.md`.
+10. Перед релизом обязательны сверка этой архитектуры с кодом и удаление подтверждённого
+    мёртвого кода, ресурсов и зависимостей по [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).

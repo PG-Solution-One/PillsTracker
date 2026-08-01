@@ -15,6 +15,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.denisp.pillstracker.MainActivity
 import com.denisp.pillstracker.R
+import com.denisp.pillstracker.application.IntakeNotificationGateway
 import com.denisp.pillstracker.data.TrackerRepository
 import com.denisp.pillstracker.domain.ScheduleCalculator
 import com.denisp.pillstracker.domain.DoseTimingPolicy
@@ -35,7 +36,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 class NotificationScheduler(
     private val context: Context,
     private val repository: TrackerRepository,
-) {
+) : IntakeNotificationGateway {
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
     private val stateStore = ReminderStateStore(context)
     private val _reminderEvents = MutableSharedFlow<Long>(
@@ -175,7 +176,7 @@ class NotificationScheduler(
         )
     }
 
-    fun cancelFollowUps(scheduledAt: Long) {
+    override fun cancelFollowUps(scheduledAt: Long) {
         cancelAllAlarms(scheduledAt)
         stateStore.clearCycle(scheduledAt)
         stateStore.untrack(scheduledAt)
@@ -287,7 +288,7 @@ class NotificationScheduler(
         )
     }
 
-    fun dismissDoseNotification(scheduledAt: Long) {
+    override fun dismissDoseNotification(scheduledAt: Long) {
         NotificationManagerCompat.from(context).cancel(notificationId(scheduledAt))
     }
 
@@ -298,7 +299,7 @@ class NotificationScheduler(
     }
 
     @SuppressLint("MissingPermission")
-    fun showLowStockNotifications(medicines: List<Medicine>) {
+    override fun showLowStockNotifications(medicines: List<Medicine>) {
         if (!canPostNotifications()) return
         medicines
             .filter(StockRules::isLowStock)

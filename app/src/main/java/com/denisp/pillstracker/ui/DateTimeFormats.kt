@@ -1,7 +1,6 @@
 package com.denisp.pillstracker.ui
 
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -15,5 +14,3 @@ val FullDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM, 
 
 fun Long.asTime(): String =
     Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).format(TimeFormatter)
-
-fun LocalDate.asDate(): String = format(DateFormatter)

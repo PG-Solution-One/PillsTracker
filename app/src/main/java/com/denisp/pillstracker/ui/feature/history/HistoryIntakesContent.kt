@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.denisp.pillstracker.application.updateIntakeStatus
 import com.denisp.pillstracker.data.TrackerRepository
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.model.Medicine
@@ -43,7 +44,6 @@ import com.denisp.pillstracker.ui.FullDateFormatter
 import com.denisp.pillstracker.ui.RussianLocale
 import com.denisp.pillstracker.ui.components.MedicineAppearance
 import com.denisp.pillstracker.ui.components.SwipeableIntakeCard
-import com.denisp.pillstracker.ui.components.updateIntakeStatus
 import com.denisp.pillstracker.ui.theme.AppEmptyState
 import com.denisp.pillstracker.ui.theme.AppSectionHeader
 import com.denisp.pillstracker.ui.theme.AppSurfaceCard

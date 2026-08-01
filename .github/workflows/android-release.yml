@@ -40,8 +40,20 @@ jobs:
           set -euo pipefail
           tag_version="${RELEASE_TAG#v}"
           app_version="$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts)"
+          readme_version="$(grep -oP 'Текущая версия: \*\*\K[^*]+' README.md)"
           if [[ "$tag_version" != "$app_version" ]]; then
             echo "Тег $RELEASE_TAG не соответствует versionName $app_version" >&2
+            exit 1
+          fi
+          if [[ "$readme_version" != "$app_version" ]]; then
+            echo "Версия README $readme_version не соответствует versionName $app_version" >&2
+            exit 1
+          fi
+          grep -Fq "PillsTracker-${app_version}-test.apk" README.md
+          grep -Fq "PillsTracker-${app_version}-release.apk" README.md
+          grep -Fq "# Чек-лист релиза ${app_version}" docs/RELEASE_CHECKLIST.md
+          if grep -Fq -- "- [ ]" docs/RELEASE_CHECKLIST.md; then
+            echo "Чек-лист релиза ${app_version} заполнен не полностью" >&2
             exit 1
           fi
           echo "APP_VERSION=$app_version" >> "$GITHUB_ENV"

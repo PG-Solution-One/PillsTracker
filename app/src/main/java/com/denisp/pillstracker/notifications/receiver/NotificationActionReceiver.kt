@@ -4,11 +4,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.denisp.pillstracker.PillsTrackerApplication
+import com.denisp.pillstracker.application.updateIntakeGroupStatus
 import com.denisp.pillstracker.model.IntakeStatus
 import com.denisp.pillstracker.notifications.NotificationScheduler.Companion.EXTRA_NOTIFICATION_ACTION
 import com.denisp.pillstracker.notifications.NotificationScheduler.Companion.EXTRA_SCHEDULED_AT
 import com.denisp.pillstracker.notifications.NotificationScheduler.NotificationAction
-import com.denisp.pillstracker.ui.components.updateIntakeGroupStatus
 
 class NotificationActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -26,7 +26,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
             NotificationAction.TAKE_ALL -> {
                 updateIntakeGroupStatus(
                     repository = repository,
-                    scheduler = scheduler,
+                    notificationGateway = scheduler,
                     scheduledAt = scheduledAt,
                     status = IntakeStatus.TAKEN,
                 )
@@ -34,7 +34,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
             NotificationAction.SKIP_ALL -> {
                 updateIntakeGroupStatus(
                     repository = repository,
-                    scheduler = scheduler,
+                    notificationGateway = scheduler,
                     scheduledAt = scheduledAt,
                     status = IntakeStatus.SKIPPED,
                 )

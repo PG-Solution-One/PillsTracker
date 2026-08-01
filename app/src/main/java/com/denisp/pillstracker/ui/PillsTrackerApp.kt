@@ -25,6 +25,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import com.denisp.pillstracker.application.updateIntakeGroupStatus
+import com.denisp.pillstracker.application.updateIntakeStatus
 import com.denisp.pillstracker.data.TrackerRepository
 import com.denisp.pillstracker.model.Medicine
 import com.denisp.pillstracker.model.IntakeStatus
@@ -34,8 +36,6 @@ import com.denisp.pillstracker.notifications.NotificationScheduler
 import com.denisp.pillstracker.ui.components.ExactAlarmPermissionNoticeDialog
 import com.denisp.pillstracker.ui.components.MedicineReminderOverlay
 import com.denisp.pillstracker.ui.components.rememberExactAlarmPermissionState
-import com.denisp.pillstracker.ui.components.updateIntakeGroupStatus
-import com.denisp.pillstracker.ui.components.updateIntakeStatus
 import com.denisp.pillstracker.ui.feature.editor.MedicineEditorScreen
 import com.denisp.pillstracker.ui.feature.history.HistoryScreen
 import com.denisp.pillstracker.ui.feature.medicines.MedicineDetailsScreen
@@ -329,7 +329,7 @@ fun PillsTrackerApp(
                 onTakeAll = {
                     updateIntakeGroupStatus(
                         repository = repository,
-                        scheduler = scheduler,
+                        notificationGateway = scheduler,
                         scheduledAt = reminderScheduledAt,
                         status = IntakeStatus.TAKEN,
                     )

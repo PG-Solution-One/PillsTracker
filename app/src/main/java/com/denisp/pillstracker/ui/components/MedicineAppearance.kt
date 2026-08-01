@@ -71,26 +71,6 @@ fun MedicineAppearance(
 }
 
 @Composable
-fun MedicineAppearance(
-    shape: PillShape,
-    primaryColorArgb: Long,
-    secondaryColorArgb: Long?,
-    modifier: Modifier = Modifier,
-    size: Dp = 28.dp,
-    backgroundColorArgb: Long = DEFAULT_MEDICINE_BACKGROUND_ARGB,
-) {
-    MedicineFormSticker(
-        form = if (shape == PillShape.CAPSULE) MedicineForm.CAPSULE else MedicineForm.TABLET,
-        shape = shape,
-        primaryColorArgb = primaryColorArgb,
-        secondaryColorArgb = secondaryColorArgb,
-        modifier = modifier,
-        size = size,
-        backgroundColorArgb = backgroundColorArgb,
-    )
-}
-
-@Composable
 fun MedicineFormSticker(
     form: MedicineForm,
     primaryColorArgb: Long,
