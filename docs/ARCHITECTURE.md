@@ -13,6 +13,7 @@ com.denisp.pillstracker
 │   └── IntakeStatusActions.kt
 ├── model
 │   ├── Intake.kt
+│   ├── InterfaceMode.kt
 │   ├── Medicine.kt
 │   ├── Schedule.kt
 │   ├── ThemeMode.kt
@@ -50,6 +51,7 @@ com.denisp.pillstracker
     │   ├── ExactAlarmPermissionUi.kt
     │   ├── GroupedIntakeCard.kt
     │   ├── IntakeStatusControls.kt
+    │   ├── InterfaceModeToggle.kt
     │   ├── MedicineAppearance.kt
     │   ├── MedicineReminderOverlay.kt
     │   ├── ProfileDatePickerDialog.kt
@@ -144,6 +146,7 @@ NotificationScheduler → TrackerRepository + Android Alarm/Notification API
   и палитру отдельно от разметки шага редактора;
 - `editor/EditorFields.kt` — переиспользуемые поля внутри редактора;
 - `components/AppDateTimePickerDialogs.kt` — общий ручной и визуальный выбор даты и времени;
+- `components/InterfaceModeToggle.kt` — общий переключатель обычного и упрощённого интерфейса;
 - `settings/ThemeModeSelector.kt` — визуальный выбор темы без логики хранения настроек;
 - `history/HistoryStatistics.kt` — координатор статистики;
 - `history/HistoryStatisticsModel.kt` — расчёты показателей;
