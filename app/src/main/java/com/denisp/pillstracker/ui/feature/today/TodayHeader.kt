@@ -1,25 +1,20 @@
 package com.denisp.pillstracker.ui.feature.today
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.denisp.pillstracker.R
@@ -60,40 +55,13 @@ internal fun TodayGreetingHeader(
 
 @Composable
 private fun GreetingArtwork(period: GreetingPeriod) {
-    val colors = MaterialTheme.colorScheme
-    val accent = when (period) {
-        GreetingPeriod.MORNING -> colors.primary
-        GreetingPeriod.DAY -> colors.secondary
-        GreetingPeriod.EVENING -> colors.tertiary
-        GreetingPeriod.NIGHT -> colors.tertiary
-    }
-    val backdropColor = lerp(colors.surfaceContainerHighest, accent, 0.12f)
-
-    Surface(
-        modifier = Modifier.size(112.dp),
-        shape = RoundedCornerShape(32.dp),
-        color = backdropColor,
-        tonalElevation = 3.dp,
-        shadowElevation = 5.dp,
-        border = BorderStroke(
-            width = 1.dp,
-            color = colors.outlineVariant.copy(alpha = 0.78f),
-        ),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(5.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Image(
-                painter = painterResource(greetingArtwork(period)),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit,
-            )
-        }
-    }
+    Image(
+        bitmap = ImageBitmap.imageResource(greetingArtwork(period)),
+        contentDescription = null,
+        modifier = Modifier.size(104.dp),
+        contentScale = ContentScale.Fit,
+        filterQuality = FilterQuality.High,
+    )
 }
 
 private fun greetingText(userName: String, period: GreetingPeriod): String {
