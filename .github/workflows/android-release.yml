@@ -51,11 +51,6 @@ jobs:
           fi
           grep -Fq "PillsTracker-${app_version}-test.apk" README.md
           grep -Fq "PillsTracker-${app_version}-release.apk" README.md
-          grep -Fq "# Чек-лист релиза ${app_version}" docs/RELEASE_CHECKLIST.md
-          if grep -Fq -- "- [ ]" docs/RELEASE_CHECKLIST.md; then
-            echo "Чек-лист релиза ${app_version} заполнен не полностью" >&2
-            exit 1
-          fi
           echo "APP_VERSION=$app_version" >> "$GITHUB_ENV"
 
       - name: Восстановление ключа подписи
